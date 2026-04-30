@@ -21,3 +21,20 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# local tooling and editor noise
+/.ai
+/.idea
+__pycache__/
+*.pyc
+
+# local dev logs
+devserver.err.log
+devserver.out.log
+
+# local debug screenshots
+staff-detail-centered.png
+staff-drawer-after.png
+staff-modal-after.png
+staff-modal-before.png
+transaction-detail-after.png

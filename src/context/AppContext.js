@@ -1,38 +1,126 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useState } from 'react';
 import { createInitialState } from '../data/mockData';
 
-const STORAGE_KEY = 'aeromiles-demo-state-v1';
+const STORAGE_KEY = 'aeromiles-demo-state-v2';
 
 const AppContext = createContext(null);
 
 const createId = (prefix) => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
-const createActivity = ({ title, meta, amount, date = new Date().toISOString().slice(0, 10) }) => ({
+const getDisplayName = (person) => [person.firstName, person.lastName].map((item) => String(item || '').trim()).filter(Boolean).join(' ');
+
+const today = () => new Date().toISOString().slice(0, 10);
+
+const createActivity = ({ memberNumber, title, meta, amount, date = today() }) => ({
   id: createId('activity'),
+  memberNumber,
   title,
   meta,
   amount,
   date,
 });
 
-const prependActivity = (items, activity) => [activity, ...items].slice(0, 8);
+const prependActivity = (items, activity) => [activity, ...items].slice(0, 12);
 
-const syncCurrentMember = (state, updates) => {
-  const currentMember = { ...state.currentMember, ...updates };
-  const members = state.members.map((member) =>
-    member.memberNumber === currentMember.memberNumber ? { ...member, ...currentMember } : member
-  );
+const upsertItem = (items, nextItem, prependNew = false) => {
+  const exists = items.some((item) => item.id === nextItem.id);
+  if (exists) {
+    return items.map((item) => (item.id === nextItem.id ? nextItem : item));
+  }
+  return prependNew ? [nextItem, ...items] : [...items, nextItem];
+};
 
-  return { currentMember, members };
+const syncMemberState = (state, member, prependNew = false) => {
+  const members = upsertItem(state.members, member, prependNew);
+  const isActiveMember = state.session?.role === 'member' && state.session.userId === member.id;
+
+  return {
+    ...state,
+    members,
+    currentMember: state.currentMember?.id === member.id || isActiveMember ? member : state.currentMember,
+    session: isActiveMember
+      ? { ...state.session, name: getDisplayName(member), email: member.email }
+      : state.session,
+  };
+};
+
+const syncStaffState = (state, person, prependNew = false) => {
+  const staff = upsertItem(state.staff, person, prependNew);
+  const isActiveStaff = state.session?.role === 'staff' && state.session.userId === person.id;
+
+  return {
+    ...state,
+    staff,
+    currentStaff: state.currentStaff?.id === person.id || isActiveStaff ? person : state.currentStaff,
+    session: isActiveStaff
+      ? { ...state.session, name: getDisplayName(person), email: person.email }
+      : state.session,
+  };
+};
+
+const getInitialState = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+      return JSON.parse(stored);
+    }
+  } catch (error) {
+    console.error('Unable to load AeroMiles demo state.', error);
+  }
+
+  return createInitialState();
+};
+
+const estimateClaimMiles = (values) => {
+  const base = {
+    Economy: 900,
+    'Premium Economy': 1200,
+    Business: 1800,
+    First: 2600,
+  };
+
+  return base[values.cabinClass] || 1000;
+};
+
+const nextNumericSuffix = (items, field, prefix, fallbackStart) => {
+  const maxValue = items.reduce((max, item) => {
+    const raw = String(item[field] || '');
+    const match = raw.match(/(\d+)$/);
+    if (!match) {
+      return max;
+    }
+    return Math.max(max, Number(match[1]));
+  }, fallbackStart);
+
+  return `${prefix}${maxValue + 1}`;
 };
 
 const reducer = (state, action) => {
   switch (action.type) {
-    case 'LOGIN':
+    case 'LOGIN': {
+      if (action.payload.role === 'member') {
+        const currentMember = state.members.find((member) => member.id === action.payload.userId) || state.currentMember;
+        return {
+          ...state,
+          session: action.payload,
+          currentMember,
+        };
+      }
+
+      if (action.payload.role === 'staff') {
+        const currentStaff = state.staff.find((person) => person.id === action.payload.userId) || state.currentStaff;
+        return {
+          ...state,
+          session: action.payload,
+          currentStaff,
+        };
+      }
+
       return {
         ...state,
         session: action.payload,
       };
+    }
 
     case 'LOGOUT':
       return {
@@ -40,61 +128,119 @@ const reducer = (state, action) => {
         session: null,
       };
 
-    case 'SUBMIT_CLAIM':
-      return {
-        ...state,
-        claims: [action.payload, ...state.claims],
+    case 'REGISTER_MEMBER': {
+      const session = {
+        role: 'member',
+        userId: action.payload.id,
+        email: action.payload.email,
+        name: getDisplayName(action.payload),
       };
 
-    case 'PURCHASE_MILES': {
-      const synced = syncCurrentMember(state, {
-        awardMiles: state.currentMember.awardMiles + action.payload.amount,
-      });
+      return syncMemberState(
+        {
+          ...state,
+          session,
+        },
+        action.payload,
+        true
+      );
+    }
 
+    case 'REGISTER_STAFF': {
+      const session = {
+        role: 'staff',
+        userId: action.payload.id,
+        email: action.payload.email,
+        name: getDisplayName(action.payload),
+      };
+
+      return syncStaffState(
+        {
+          ...state,
+          session,
+        },
+        action.payload,
+        true
+      );
+    }
+
+    case 'SAVE_CLAIM': {
+      const claims = upsertItem(state.claims, action.payload.claim, true);
       return {
         ...state,
-        ...synced,
-        purchases: [action.payload.purchase, ...state.purchases],
-        recentActivity: prependActivity(state.recentActivity, action.payload.activity),
+        claims,
+        recentActivity: action.payload.activity ? prependActivity(state.recentActivity, action.payload.activity) : state.recentActivity,
       };
     }
 
-    case 'TRANSFER_MILES': {
-      const synced = syncCurrentMember(state, {
-        awardMiles: state.currentMember.awardMiles - action.payload.amount,
-      });
-
+    case 'DELETE_CLAIM':
       return {
         ...state,
-        ...synced,
-        transfers: [action.payload.transfer, ...state.transfers],
-        recentActivity: prependActivity(state.recentActivity, action.payload.activity),
+        claims: state.claims.filter((claim) => claim.id !== action.payload),
+      };
+
+    case 'PURCHASE_MILES': {
+      const member = state.members.find((item) => item.id === action.payload.memberId) || state.currentMember;
+      let nextState = syncMemberState(state, {
+        ...member,
+        awardMiles: Number(member.awardMiles) + action.payload.amount,
+      });
+
+      nextState = {
+        ...nextState,
+        purchases: [action.payload.purchase, ...nextState.purchases],
+        recentActivity: prependActivity(nextState.recentActivity, action.payload.activity),
+      };
+
+      return nextState;
+    }
+
+    case 'TRANSFER_MILES': {
+      const sender = state.members.find((item) => item.id === action.payload.memberId) || state.currentMember;
+      let nextState = syncMemberState(state, {
+        ...sender,
+        awardMiles: Number(sender.awardMiles) - action.payload.amount,
+      });
+
+      const recipient = nextState.members.find(
+        (member) => member.memberNumber.toUpperCase() === action.payload.transfer.toMemberNumber.toUpperCase()
+      );
+
+      if (recipient) {
+        nextState = syncMemberState(nextState, {
+          ...recipient,
+          awardMiles: Number(recipient.awardMiles) + action.payload.amount,
+        });
+      }
+
+      return {
+        ...nextState,
+        transfers: [action.payload.transfer, ...nextState.transfers],
+        recentActivity: prependActivity(nextState.recentActivity, action.payload.activity),
       };
     }
 
     case 'REDEEM_REWARD': {
-      const synced = syncCurrentMember(state, {
-        awardMiles: state.currentMember.awardMiles - action.payload.reward.milesCost,
+      const member = state.members.find((item) => item.id === action.payload.memberId) || state.currentMember;
+      let nextState = syncMemberState(state, {
+        ...member,
+        awardMiles: Number(member.awardMiles) - action.payload.reward.milesCost,
       });
 
-      return {
-        ...state,
-        ...synced,
-        redemptions: [action.payload.redemption, ...state.redemptions],
-        recentActivity: prependActivity(state.recentActivity, action.payload.activity),
+      nextState = {
+        ...nextState,
+        redemptions: [action.payload.redemption, ...nextState.redemptions],
+        recentActivity: prependActivity(nextState.recentActivity, action.payload.activity),
       };
+
+      return nextState;
     }
 
-    case 'SAVE_IDENTITY': {
-      const identities = state.identities.some((identity) => identity.id === action.payload.id)
-        ? state.identities.map((identity) => (identity.id === action.payload.id ? action.payload : identity))
-        : [action.payload, ...state.identities];
-
+    case 'SAVE_IDENTITY':
       return {
         ...state,
-        identities,
+        identities: upsertItem(state.identities, action.payload, true),
       };
-    }
 
     case 'DELETE_IDENTITY':
       return {
@@ -102,83 +248,77 @@ const reducer = (state, action) => {
         identities: state.identities.filter((identity) => identity.id !== action.payload),
       };
 
-    case 'SAVE_MEMBER': {
-      const exists = state.members.some((member) => member.id === action.payload.id);
-      const members = exists
-        ? state.members.map((member) => (member.id === action.payload.id ? action.payload : member))
-        : [action.payload, ...state.members];
+    case 'SAVE_MEMBER':
+      return syncMemberState(state, action.payload, true);
 
-      if (action.payload.memberNumber === state.currentMember.memberNumber) {
-        return {
-          ...state,
-          members,
-          currentMember: { ...state.currentMember, ...action.payload },
-        };
-      }
+    case 'DELETE_MEMBER': {
+      const nextMembers = state.members.filter((member) => member.id !== action.payload);
+      const isDeletedSessionUser = state.session?.role === 'member' && state.session.userId === action.payload;
+      const nextCurrentMember =
+        state.currentMember?.id === action.payload ? nextMembers[0] || state.currentMember : state.currentMember;
 
       return {
         ...state,
-        members,
+        members: nextMembers,
+        currentMember: nextCurrentMember,
+        session: isDeletedSessionUser ? null : state.session,
       };
     }
 
-    case 'DELETE_MEMBER':
-      return {
-        ...state,
-        members: state.members.filter((member) => member.id !== action.payload),
-      };
+    case 'SAVE_STAFF':
+      return syncStaffState(state, action.payload, true);
 
-    case 'SAVE_STAFF': {
-      const exists = state.staff.some((person) => person.id === action.payload.id);
-      const staff = exists
-        ? state.staff.map((person) => (person.id === action.payload.id ? action.payload : person))
-        : [action.payload, ...state.staff];
+    case 'DELETE_STAFF': {
+      const nextStaff = state.staff.filter((person) => person.id !== action.payload);
+      const isDeletedSessionUser = state.session?.role === 'staff' && state.session.userId === action.payload;
+      const nextCurrentStaff =
+        state.currentStaff?.id === action.payload ? nextStaff[0] || state.currentStaff : state.currentStaff;
 
       return {
         ...state,
-        staff,
+        staff: nextStaff,
+        currentStaff: nextCurrentStaff,
+        session: isDeletedSessionUser ? null : state.session,
       };
     }
-
-    case 'DELETE_STAFF':
-      return {
-        ...state,
-        staff: state.staff.filter((person) => person.id !== action.payload),
-      };
 
     case 'REVIEW_CLAIM': {
+      const existingClaim = state.claims.find((item) => item.id === action.payload.claimId);
       const claims = state.claims.map((claim) =>
         claim.id === action.payload.claimId
           ? { ...claim, status: action.payload.status, reviewerNote: action.payload.note || '' }
           : claim
       );
 
-      if (action.payload.status === 'Approved') {
-        const claim = state.claims.find((item) => item.id === action.payload.claimId);
-        if (claim && claim.memberNumber === state.currentMember.memberNumber) {
-          const synced = syncCurrentMember(state, {
-            awardMiles: state.currentMember.awardMiles + Number(claim.requestedMiles || 0),
-          });
-          return {
-            ...state,
-            ...synced,
-            claims,
-            recentActivity: prependActivity(
-              state.recentActivity,
-              createActivity({
-                title: `Claim ${claim.id} approved`,
-                meta: `${claim.airline} ${claim.flightNumber}`,
-                amount: `+${claim.requestedMiles} miles`,
-              })
-            ),
-          };
-        }
-      }
-
-      return {
+      let nextState = {
         ...state,
         claims,
       };
+
+      if (action.payload.status === 'Approved' && existingClaim) {
+        const targetMember = state.members.find((member) => member.memberNumber === existingClaim.memberNumber);
+        if (targetMember) {
+          nextState = syncMemberState(nextState, {
+            ...targetMember,
+            awardMiles: Number(targetMember.awardMiles) + Number(existingClaim.requestedMiles || 0),
+          });
+        }
+
+        nextState = {
+          ...nextState,
+          recentActivity: prependActivity(
+            nextState.recentActivity,
+            createActivity({
+              memberNumber: existingClaim.memberNumber,
+              title: `Claim ${existingClaim.id} approved`,
+              meta: `${existingClaim.airline} ${existingClaim.flightNumber}`,
+              amount: `+${existingClaim.requestedMiles} miles`,
+            })
+          ),
+        };
+      }
+
+      return nextState;
     }
 
     case 'SAVE_MASTER_DATA':
@@ -207,19 +347,6 @@ const reducer = (state, action) => {
   }
 };
 
-const getInitialState = () => {
-  try {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      return JSON.parse(stored);
-    }
-  } catch (error) {
-    console.error('Unable to load AeroMiles demo state.', error);
-  }
-
-  return createInitialState();
-};
-
 export function AppProvider({ children }) {
   const [state, dispatch] = useReducer(reducer, undefined, getInitialState);
   const [toasts, setToasts] = useState([]);
@@ -232,17 +359,20 @@ export function AppProvider({ children }) {
     setToasts((items) => items.filter((toast) => toast.id !== toastId));
   }, []);
 
-  const notify = useCallback(({ type = 'success', title, message }) => {
-    const toast = {
-      id: createId('toast'),
-      type,
-      title,
-      message,
-    };
+  const notify = useCallback(
+    ({ type = 'success', title, message }) => {
+      const toast = {
+        id: createId('toast'),
+        type,
+        title,
+        message,
+      };
 
-    setToasts((items) => [toast, ...items].slice(0, 4));
-    window.setTimeout(() => removeToast(toast.id), 4000);
-  }, [removeToast]);
+      setToasts((items) => [toast, ...items].slice(0, 4));
+      window.setTimeout(() => removeToast(toast.id), 4000);
+    },
+    [removeToast]
+  );
 
   const value = useMemo(
     () => ({
@@ -250,25 +380,124 @@ export function AppProvider({ children }) {
       toasts,
       removeToast,
       notify,
-      login: (payload) => dispatch({ type: 'LOGIN', payload }),
+      signIn: ({ role, email, password }) => {
+        const normalizedEmail = email.trim().toLowerCase();
+        const collection = role === 'member' ? state.members : state.staff;
+        const user = collection.find((item) => item.email.toLowerCase() === normalizedEmail);
+
+        if (!user || user.password !== password) {
+          return { error: 'The email or password is incorrect.' };
+        }
+
+        dispatch({
+          type: 'LOGIN',
+          payload: {
+            role,
+            userId: user.id,
+            email: user.email,
+            name: getDisplayName(user),
+          },
+        });
+
+        return { error: '', user };
+      },
       logout: () => dispatch({ type: 'LOGOUT' }),
       resetState: () => {
         localStorage.removeItem(STORAGE_KEY);
         window.location.reload();
       },
-      submitClaim: (values) => {
-        const claim = {
-          id: `CLM-${Math.floor(100000 + Math.random() * 900000)}`,
-          memberNumber: state.currentMember.memberNumber,
-          memberName: `${state.currentMember.firstName} ${state.currentMember.lastName}`,
-          status: 'Pending Review',
-          requestedMiles: 1800,
-          submittedAt: new Date().toISOString().slice(0, 10),
-          ...values,
+      registerMember: (values) => {
+        const member = {
+          id: createId('member'),
+          salutation: values.salutation || '',
+          firstName: values.firstName.trim(),
+          middleName: values.middleName?.trim() || '',
+          lastName: values.lastName.trim(),
+          email: values.email.trim().toLowerCase(),
+          countryCode: values.countryCode?.trim() || '+62',
+          mobileNumber: values.mobileNumber?.trim() || '',
+          dateOfBirth: values.dateOfBirth,
+          nationality: values.nationality.trim(),
+          memberNumber: nextNumericSuffix(state.members, 'memberNumber', 'AM-', 100000),
+          joinDate: today(),
+          tier: 'Blue',
+          awardMiles: 0,
+          tierMiles: 0,
+          status: 'Active',
+          password: values.password,
+          preferredAirport: 'CGK',
+          seatPreference: 'Aisle',
+          communicationChannel: 'Email',
+          marketingOptIn: true,
         };
-        dispatch({ type: 'SUBMIT_CLAIM', payload: claim });
+
+        dispatch({ type: 'REGISTER_MEMBER', payload: member });
+        return member;
+      },
+      registerStaff: (values) => {
+        const person = {
+          id: createId('staff'),
+          staffId: nextNumericSuffix(state.staff, 'staffId', 'STF-', 1000),
+          salutation: values.salutation || '',
+          firstName: values.firstName.trim(),
+          middleName: values.middleName?.trim() || '',
+          lastName: values.lastName.trim(),
+          email: values.email.trim().toLowerCase(),
+          countryCode: values.countryCode?.trim() || '+62',
+          mobileNumber: values.mobileNumber?.trim() || '',
+          dateOfBirth: values.dateOfBirth || '',
+          nationality: values.nationality?.trim() || '',
+          airline: values.airline,
+          role: values.role.trim(),
+          status: 'Active',
+          password: values.password,
+          workspace: 'Alliance Operations Center',
+          alertDigest: 'Daily',
+          escalationAlerts: true,
+        };
+
+        dispatch({ type: 'REGISTER_STAFF', payload: person });
+        return person;
+      },
+      saveClaim: (values) => {
+        const existingClaim = values.id ? state.claims.find((claim) => claim.id === values.id) : null;
+        const formValues = {
+          airline: values.airline,
+          flightNumber: values.flightNumber,
+          flightDate: values.flightDate,
+          origin: values.origin,
+          destination: values.destination,
+          cabinClass: values.cabinClass,
+          ticketNumber: values.ticketNumber,
+          pnr: values.pnr,
+          notes: values.notes,
+        };
+        const claim = {
+          id: existingClaim?.id || `CLM-${Math.floor(100000 + Math.random() * 900000)}`,
+          memberNumber: state.currentMember.memberNumber,
+          memberName: getDisplayName(state.currentMember),
+          status: 'Pending Review',
+          requestedMiles: existingClaim?.requestedMiles || estimateClaimMiles(values),
+          submittedAt: today(),
+          reviewerNote: '',
+          ...formValues,
+        };
+
+        dispatch({
+          type: 'SAVE_CLAIM',
+          payload: {
+            claim,
+            activity: createActivity({
+              memberNumber: state.currentMember.memberNumber,
+              title: existingClaim ? 'Claim resubmitted' : 'Claim submitted',
+              meta: `${claim.airline} ${claim.flightNumber}`,
+              amount: `+${claim.requestedMiles} miles pending`,
+            }),
+          },
+        });
         return claim;
       },
+      deleteClaim: (id) => dispatch({ type: 'DELETE_CLAIM', payload: id }),
       purchaseMiles: (pkg) => {
         const purchase = {
           id: createId('PUR'),
@@ -278,16 +507,17 @@ export function AppProvider({ children }) {
           amount: pkg.amount,
           price: pkg.price,
           status: 'Settled',
-          createdAt: new Date().toISOString().slice(0, 10),
+          createdAt: today(),
         };
         const activity = createActivity({
+          memberNumber: state.currentMember.memberNumber,
           title: 'Purchased Award Miles',
           meta: pkg.label,
           amount: `+${pkg.amount.toLocaleString('en-US')} miles`,
         });
         dispatch({
           type: 'PURCHASE_MILES',
-          payload: { amount: pkg.amount, purchase, activity },
+          payload: { memberId: state.currentMember.id, amount: pkg.amount, purchase, activity },
         });
         return purchase;
       },
@@ -299,16 +529,17 @@ export function AppProvider({ children }) {
           amount: Number(amount),
           note,
           status: 'Completed',
-          createdAt: new Date().toISOString().slice(0, 10),
+          createdAt: today(),
         };
         const activity = createActivity({
+          memberNumber: state.currentMember.memberNumber,
           title: 'Transfer completed',
           meta: `To ${transfer.toMemberNumber}`,
           amount: `-${Number(amount).toLocaleString('en-US')} miles`,
         });
         dispatch({
           type: 'TRANSFER_MILES',
-          payload: { amount: Number(amount), transfer, activity },
+          payload: { memberId: state.currentMember.id, amount: Number(amount), transfer, activity },
         });
         return transfer;
       },
@@ -320,33 +551,55 @@ export function AppProvider({ children }) {
           rewardTitle: reward.title,
           milesCost: reward.milesCost,
           status: 'Issued',
-          createdAt: new Date().toISOString().slice(0, 10),
+          createdAt: today(),
         };
         const activity = createActivity({
+          memberNumber: state.currentMember.memberNumber,
           title: 'Reward redeemed',
           meta: reward.title,
           amount: `-${reward.milesCost.toLocaleString('en-US')} miles`,
         });
         dispatch({
           type: 'REDEEM_REWARD',
-          payload: { reward, redemption, activity },
+          payload: { memberId: state.currentMember.id, reward, redemption, activity },
         });
         return redemption;
       },
       saveIdentity: (values) => {
-        const payload = values.id ? values : { ...values, id: createId('identity') };
+        const payload = values.id
+          ? { ...values, memberNumber: values.memberNumber || state.currentMember.memberNumber }
+          : { ...values, id: createId('identity'), memberNumber: state.currentMember.memberNumber };
         dispatch({ type: 'SAVE_IDENTITY', payload });
         return payload;
       },
       deleteIdentity: (id) => dispatch({ type: 'DELETE_IDENTITY', payload: id }),
       saveMember: (values) => {
-        const payload = values.id ? values : { ...values, id: createId('member') };
+        const payload = values.id
+          ? values
+          : {
+              ...values,
+              id: createId('member'),
+              password: values.password || 'password123',
+              preferredAirport: values.preferredAirport || 'CGK',
+              seatPreference: values.seatPreference || 'Aisle',
+              communicationChannel: values.communicationChannel || 'Email',
+              marketingOptIn: values.marketingOptIn ?? true,
+            };
         dispatch({ type: 'SAVE_MEMBER', payload });
         return payload;
       },
       deleteMember: (id) => dispatch({ type: 'DELETE_MEMBER', payload: id }),
       saveStaff: (values) => {
-        const payload = values.id ? values : { ...values, id: createId('staff') };
+        const payload = values.id
+          ? values
+          : {
+              ...values,
+              id: createId('staff'),
+              password: values.password || 'password123',
+              workspace: values.workspace || 'Alliance Operations Center',
+              alertDigest: values.alertDigest || 'Daily',
+              escalationAlerts: values.escalationAlerts ?? true,
+            };
         dispatch({ type: 'SAVE_STAFF', payload });
         return payload;
       },

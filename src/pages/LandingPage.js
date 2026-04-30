@@ -1,4 +1,4 @@
-import { ArrowRight, ShieldCheck, Star, Ticket } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Star, Ticket, UserPlus } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { allianceAirlines } from '../data/mockData';
 
@@ -21,6 +21,10 @@ export default function LandingPage() {
             <Link className="button button-secondary-light icon-label" to="/login?role=staff">
               Staff Login
               <ShieldCheck size={16} />
+            </Link>
+            <Link className="button button-secondary-light icon-label" to="/register?role=member" data-testid="landing-register-cta">
+              Register
+              <UserPlus size={16} />
             </Link>
           </div>
           <div className="hero-metrics">

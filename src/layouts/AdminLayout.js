@@ -1,6 +1,14 @@
 import {
+  BarChart3,
+  Database,
+  FileCheck2,
+  Gift,
   LayoutDashboard,
+  Settings2,
   ShieldCheck,
+  Users,
+  UserSquare2,
+  Wallet,
 } from 'lucide-react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -9,12 +17,52 @@ import { useAppContext } from '../context/AppContext';
 
 const adminRoutes = [
   { to: '/admin/dashboard', label: 'Dashboard', icon: <LayoutDashboard size={18} />, testId: 'admin-nav-dashboard' },
+  { to: '/admin/members', label: 'Members', icon: <Users size={18} />, testId: 'admin-nav-members' },
+  { to: '/admin/staff', label: 'Staff', icon: <UserSquare2 size={18} />, testId: 'admin-nav-staff' },
+  { to: '/admin/claims', label: 'Claims', icon: <FileCheck2 size={18} />, testId: 'admin-nav-claims' },
+  { to: '/admin/transactions', label: 'Transactions', icon: <Wallet size={18} />, testId: 'admin-nav-transactions' },
+  { to: '/admin/master-data', label: 'Master Data', icon: <Database size={18} />, testId: 'admin-nav-master-data' },
+  { to: '/admin/rewards-management', label: 'Rewards Mgmt', icon: <Gift size={18} />, testId: 'admin-nav-rewards-management' },
+  { to: '/admin/reports', label: 'Reports', icon: <BarChart3 size={18} />, testId: 'admin-nav-reports' },
+  { to: '/admin/profile', label: 'Profile', icon: <Settings2 size={18} />, testId: 'admin-nav-profile' },
 ];
 
 const routeMeta = {
   '/admin/dashboard': {
     title: 'Admin Dashboard',
     subtitle: 'Loyalty operations, claims, revenue, and airline performance at a glance.',
+  },
+  '/admin/members': {
+    title: 'Member Management',
+    subtitle: 'Search, review, add, edit, and remove loyalty members.',
+  },
+  '/admin/staff': {
+    title: 'Staff Management',
+    subtitle: 'Maintain staff records, roles, and airline domain validation.',
+  },
+  '/admin/claims': {
+    title: 'Claim Review Queue',
+    subtitle: 'Approve, reject, or request more information for pending claims.',
+  },
+  '/admin/transactions': {
+    title: 'Transaction Management',
+    subtitle: 'Review purchase, transfer, redemption, and claim-related transactions.',
+  },
+  '/admin/master-data': {
+    title: 'Master Data',
+    subtitle: 'Compact CRUD sections for airlines, airports, tiers, and packages.',
+  },
+  '/admin/rewards-management': {
+    title: 'Partner & Reward Management',
+    subtitle: 'Manage partners and rewards with active date monitoring.',
+  },
+  '/admin/reports': {
+    title: 'Reports',
+    subtitle: 'Operational reporting placeholders for growth, claims, and revenue.',
+  },
+  '/admin/profile': {
+    title: 'Profile Settings',
+    subtitle: 'Manage staff contact details and alert preferences for operations access.',
   },
 };
 
@@ -36,7 +84,7 @@ export default function AdminLayout() {
         items={adminRoutes}
         footer={
           <div className="stack gap-xs">
-            <span>{state.session.name}</span>
+            <span>{state.currentStaff ? `${state.currentStaff.firstName} ${state.currentStaff.lastName}` : state.session.name}</span>
             <span className="footer-muted">
               <ShieldCheck size={14} />
               Staff access
@@ -48,7 +96,7 @@ export default function AdminLayout() {
         <Topbar
           title={meta.title}
           subtitle={meta.subtitle}
-          userLabel={state.session.name}
+          userLabel={state.currentStaff ? `${state.currentStaff.firstName} ${state.currentStaff.lastName}` : state.session.name}
           onReset={resetState}
           onLogout={() => {
             logout();

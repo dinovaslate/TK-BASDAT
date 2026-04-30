@@ -1,5 +1,11 @@
 import {
+  CircleUserRound,
+  ClipboardCheck,
+  Gift,
   Home,
+  Repeat2,
+  Settings2,
+  WalletCards,
 } from 'lucide-react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import Sidebar from '../components/Sidebar';
@@ -8,12 +14,42 @@ import { useAppContext } from '../context/AppContext';
 
 const memberRoutes = [
   { to: '/member/dashboard', label: 'Dashboard', icon: <Home size={18} /> },
+  { to: '/member/claim', label: 'Claim Miles', icon: <ClipboardCheck size={18} /> },
+  { to: '/member/buy-miles', label: 'Buy Miles', icon: <WalletCards size={18} /> },
+  { to: '/member/transfer', label: 'Transfer Miles', icon: <Repeat2 size={18} /> },
+  { to: '/member/rewards', label: 'Rewards', icon: <Gift size={18} /> },
+  { to: '/member/identity', label: 'Identity Docs', icon: <CircleUserRound size={18} /> },
+  { to: '/member/profile', label: 'Profile', icon: <Settings2 size={18} /> },
 ];
 
 const routeMeta = {
   '/member/dashboard': {
     title: 'Member Dashboard',
     subtitle: 'Track balances, recent activity, and the next tier milestone.',
+  },
+  '/member/claim': {
+    title: 'Claim Missing Miles',
+    subtitle: 'Submit post-flight mileage claims with validation and tracking.',
+  },
+  '/member/buy-miles': {
+    title: 'Purchase Award Miles',
+    subtitle: 'Select a package and post it into the mock wallet instantly.',
+  },
+  '/member/transfer': {
+    title: 'Transfer Award Miles',
+    subtitle: 'Move miles to another member with balance protection.',
+  },
+  '/member/rewards': {
+    title: 'Reward Catalog',
+    subtitle: 'Browse, filter, inspect, and redeem AeroMiles partner rewards.',
+  },
+  '/member/identity': {
+    title: 'Identity Documents',
+    subtitle: 'Maintain travel documents and KTP lifetime validity settings.',
+  },
+  '/member/profile': {
+    title: 'Profile Settings',
+    subtitle: 'Update personal details, travel preferences, and communication settings.',
   },
 };
 
