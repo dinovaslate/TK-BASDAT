@@ -107,10 +107,20 @@ export default function MembersPage() {
       label: 'Actions',
       render: (row) => (
         <div className="table-actions">
-          <button type="button" className="button button-secondary compact-button" onClick={() => setSelectedMember(row)}>
+          <button
+            type="button"
+            className="button button-secondary compact-button"
+            onClick={() => setSelectedMember(row)}
+            data-testid={`view-member-${row.memberNumber}`}
+          >
             View
           </button>
-          <button type="button" className="button button-secondary compact-button" onClick={() => openEditor(row)}>
+          <button
+            type="button"
+            className="button button-secondary compact-button"
+            onClick={() => openEditor(row)}
+            data-testid={`edit-member-${row.memberNumber}`}
+          >
             Edit
           </button>
           <button
@@ -140,6 +150,7 @@ export default function MembersPage() {
               placeholder="Search members"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
+              data-testid="member-search-input"
             />
             <select className="field-input compact-input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
               <option value="All">All statuses</option>
@@ -154,7 +165,12 @@ export default function MembersPage() {
         <DataTable columns={columns} rows={filteredMembers} testId="member-table" />
       </section>
 
-      <Drawer open={Boolean(selectedMember)} title={selectedMember?.memberNumber || ''} onClose={() => setSelectedMember(null)}>
+      <Drawer
+        open={Boolean(selectedMember)}
+        title={selectedMember?.memberNumber || ''}
+        onClose={() => setSelectedMember(null)}
+        testId="member-detail-drawer"
+      >
         {selectedMember ? (
           <div className="stack gap-md">
             <div className="detail-row"><span className="detail-label">Name</span><strong>{selectedMember.firstName} {selectedMember.lastName}</strong></div>

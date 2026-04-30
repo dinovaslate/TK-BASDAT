@@ -1,8 +1,20 @@
-import { companyDomains, mockCredentials } from '../data/mockData';
+import { companyDomains } from '../data/mockData';
 
 export const isValidEmail = (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(value || '').trim());
 
 export const isCompanyEmail = (value) => companyDomains.some((domain) => String(value || '').toLowerCase().endsWith(domain));
+
+const fullName = (values) =>
+  [values.firstName, values.middleName, values.lastName].map((item) => String(item || '').trim()).filter(Boolean).join(' ');
+
+const findDuplicateEmail = (email, members, staff, editingId) => {
+  const normalized = String(email || '').trim().toLowerCase();
+  if (!normalized) {
+    return null;
+  }
+
+  return [...members, ...staff].find((item) => item.email.toLowerCase() === normalized && item.id !== editingId);
+};
 
 export const validateLogin = ({ role, email, password }) => {
   const errors = {};
@@ -23,17 +35,55 @@ export const validateLogin = ({ role, email, password }) => {
   return errors;
 };
 
-export const validateCredentials = ({ role, email, password }) => {
-  const expected = mockCredentials[role];
-  if (!expected) {
-    return 'Invalid role.';
+export const validateRegistration = ({ roleType, ...values }, members, staff) => {
+  const errors = {};
+  const email = String(values.email || '').trim().toLowerCase();
+
+  if (!fullName(values)) {
+    errors.firstName = 'Full name is required.';
   }
 
-  if (email.trim().toLowerCase() !== expected.email || password !== expected.password) {
-    return 'The email or password is incorrect.';
+  if (!email) {
+    errors.email = roleType === 'staff' ? 'Company email is required.' : 'Email is required.';
+  } else if (!isValidEmail(email)) {
+    errors.email = 'Enter a valid email address.';
+  } else if (roleType === 'staff' && !isCompanyEmail(email)) {
+    errors.email = `Company email must use one of these domains: ${companyDomains.join(', ')}.`;
+  } else if (findDuplicateEmail(email, members, staff)) {
+    errors.email = 'Email is already registered.';
   }
 
-  return '';
+  if (!String(values.password || '').trim()) {
+    errors.password = 'Password is required.';
+  } else if (String(values.password).length < 8) {
+    errors.password = 'Password must be at least 8 characters.';
+  }
+
+  if (!String(values.confirmPassword || '').trim()) {
+    errors.confirmPassword = 'Please confirm the password.';
+  } else if (values.confirmPassword !== values.password) {
+    errors.confirmPassword = 'Passwords do not match.';
+  }
+
+  if (roleType === 'member') {
+    if (!String(values.dateOfBirth || '').trim()) {
+      errors.dateOfBirth = 'Date of birth is required.';
+    }
+    if (!String(values.nationality || '').trim()) {
+      errors.nationality = 'Nationality is required.';
+    }
+  }
+
+  if (roleType === 'staff') {
+    if (!String(values.airline || '').trim()) {
+      errors.airline = 'Airline is required.';
+    }
+    if (!String(values.role || '').trim()) {
+      errors.role = 'Role is required.';
+    }
+  }
+
+  return errors;
 };
 
 export const validateClaim = (values) => {
@@ -118,9 +168,6 @@ export const validateIdentity = (values) => {
 
   return errors;
 };
-
-const fullName = (values) =>
-  [values.firstName, values.middleName, values.lastName].map((item) => String(item || '').trim()).filter(Boolean).join(' ');
 
 export const validateMember = (values, members, editingId) => {
   const errors = {};

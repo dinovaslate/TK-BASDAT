@@ -66,10 +66,20 @@ export default function IdentityPage() {
       label: 'Actions',
       render: (row) => (
         <div className="table-actions">
-          <button type="button" className="button button-secondary compact-button" onClick={() => openEditor(row)}>
+          <button
+            type="button"
+            className="button button-secondary compact-button"
+            onClick={() => openEditor(row)}
+            data-testid={`edit-identity-${row.number}`}
+          >
             Edit
           </button>
-          <button type="button" className="button button-danger compact-button" onClick={() => setDeleteTarget(row)}>
+          <button
+            type="button"
+            className="button button-danger compact-button"
+            onClick={() => setDeleteTarget(row)}
+            data-testid={`delete-identity-${row.number}`}
+          >
             Delete
           </button>
         </div>
@@ -77,22 +87,34 @@ export default function IdentityPage() {
     },
   ];
 
+  const memberIdentities = state.identities.filter((identity) => identity.memberNumber === state.currentMember.memberNumber);
+
   return (
-    <div className="stack gap-xl">
+    <div className="stack gap-xl" data-testid="member-identity-page">
       <section className="panel">
         <div className="panel-header">
           <div>
             <div className="eyebrow">Travel readiness</div>
             <h2>Stored identity documents</h2>
           </div>
-          <button type="button" className="button button-primary" onClick={() => openEditor(null)}>
+          <button
+            type="button"
+            className="button button-primary"
+            onClick={() => openEditor(null)}
+            data-testid="add-identity-button"
+          >
             Add Identity
           </button>
         </div>
-        <DataTable columns={columns} rows={state.identities} />
+        <DataTable columns={columns} rows={memberIdentities} testId="identity-table" />
       </section>
 
-      <Modal open={modalOpen} title={values.id ? 'Edit identity document' : 'Add identity document'} onClose={() => setModalOpen(false)}>
+      <Modal
+        open={modalOpen}
+        title={values.id ? 'Edit identity document' : 'Add identity document'}
+        onClose={() => setModalOpen(false)}
+        testId="identity-modal"
+      >
         <form className="stack gap-md" onSubmit={handleSave}>
           <SelectField
             label="Identity type"
@@ -105,18 +127,21 @@ export default function IdentityPage() {
               { value: 'Driver License', label: 'Driver License' },
             ]}
             error={errors.type}
+            data-testid="identity-type-select"
           />
           <FormField
             label="Identity number"
             value={values.number}
             onChange={(event) => setValues((current) => ({ ...current, number: event.target.value }))}
             error={errors.number}
+            data-testid="identity-number-input"
           />
           <FormField
             label="Issuing country"
             value={values.issuingCountry}
             onChange={(event) => setValues((current) => ({ ...current, issuingCountry: event.target.value }))}
             error={errors.issuingCountry}
+            data-testid="identity-country-input"
           />
           <FormField
             label="Issue date"
@@ -124,6 +149,7 @@ export default function IdentityPage() {
             value={values.issueDate}
             onChange={(event) => setValues((current) => ({ ...current, issueDate: event.target.value }))}
             error={errors.issueDate}
+            data-testid="identity-issue-date-input"
           />
           <label className="checkbox-row">
             <input
@@ -136,6 +162,7 @@ export default function IdentityPage() {
                   expiryDate: event.target.checked ? '' : current.expiryDate,
                 }))
               }
+              data-testid="identity-lifetime-checkbox"
             />
             <span>KTP lifetime validity</span>
           </label>
@@ -146,12 +173,13 @@ export default function IdentityPage() {
             onChange={(event) => setValues((current) => ({ ...current, expiryDate: event.target.value }))}
             error={errors.expiryDate}
             disabled={values.lifetime}
+            data-testid="identity-expiry-date-input"
           />
           <div className="dialog-actions">
             <button type="button" className="button button-secondary" onClick={() => setModalOpen(false)}>
               Cancel
             </button>
-            <button type="submit" className="button button-primary">
+            <button type="submit" className="button button-primary" data-testid="identity-save-button">
               Save
             </button>
           </div>

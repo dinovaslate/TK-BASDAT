@@ -448,6 +448,27 @@ p {
   gap: 24px;
 }
 
+.register-card {
+  width: min(1240px, 100%);
+  min-height: 720px;
+}
+
+.register-panel {
+  justify-content: flex-start;
+}
+
+.auth-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.auth-link {
+  color: var(--surface-navy);
+  font-weight: 600;
+}
+
 .segmented-control {
   display: inline-grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -712,6 +733,22 @@ textarea.field-input {
 
 .wide-aside {
   grid-template-columns: minmax(0, 1.2fr) 420px;
+}
+
+.profile-layout {
+  align-items: stretch;
+}
+
+.profile-summary-card {
+  position: sticky;
+  top: 18px;
+}
+
+.profile-checkbox-row {
+  padding: 14px 16px;
+  border: 1px solid var(--surface-border);
+  border-radius: 12px;
+  background: var(--surface-muted);
 }
 
 .three-column-grid {

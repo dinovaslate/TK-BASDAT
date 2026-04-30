@@ -36,6 +36,11 @@ const currentMember = {
   awardMiles: 18250,
   tierMiles: 38400,
   status: 'Active',
+  password: 'password123',
+  preferredAirport: 'CGK',
+  seatPreference: 'Aisle',
+  communicationChannel: 'Email',
+  marketingOptIn: true,
 };
 
 const members = [
@@ -57,6 +62,11 @@ const members = [
     awardMiles: 9250,
     tierMiles: 17600,
     status: 'Active',
+    password: 'password123',
+    preferredAirport: 'CGK',
+    seatPreference: 'Window',
+    communicationChannel: 'Email',
+    marketingOptIn: true,
   },
   {
     id: 'member-003',
@@ -75,6 +85,11 @@ const members = [
     awardMiles: 65200,
     tierMiles: 82100,
     status: 'Active',
+    password: 'password123',
+    preferredAirport: 'HND',
+    seatPreference: 'Aisle',
+    communicationChannel: 'Email',
+    marketingOptIn: false,
   },
   {
     id: 'member-004',
@@ -93,6 +108,11 @@ const members = [
     awardMiles: 3100,
     tierMiles: 5400,
     status: 'Active',
+    password: 'password123',
+    preferredAirport: 'SYD',
+    seatPreference: 'Middle',
+    communicationChannel: 'SMS',
+    marketingOptIn: true,
   },
   {
     id: 'member-005',
@@ -111,6 +131,11 @@ const members = [
     awardMiles: 22340,
     tierMiles: 40610,
     status: 'Suspended',
+    password: 'password123',
+    preferredAirport: 'DPS',
+    seatPreference: 'Window',
+    communicationChannel: 'Email',
+    marketingOptIn: false,
   },
 ];
 
@@ -130,6 +155,10 @@ const staff = [
     airline: 'Ozi Skies',
     role: 'Loyalty Operations Lead',
     status: 'Active',
+    password: 'password123',
+    workspace: 'Alliance Operations Center',
+    alertDigest: 'Daily',
+    escalationAlerts: true,
   },
   {
     id: 'staff-002',
@@ -146,6 +175,10 @@ const staff = [
     airline: 'Sakura Airways',
     role: 'Rewards Manager',
     status: 'Active',
+    password: 'password123',
+    workspace: 'Tokyo Rewards Hub',
+    alertDigest: 'Weekly',
+    escalationAlerts: true,
   },
   {
     id: 'staff-003',
@@ -162,6 +195,10 @@ const staff = [
     airline: 'Nusantara Air',
     role: 'Claims Reviewer',
     status: 'Active',
+    password: 'password123',
+    workspace: 'Jakarta Claims Desk',
+    alertDigest: 'Daily',
+    escalationAlerts: true,
   },
   {
     id: 'staff-004',
@@ -178,12 +215,19 @@ const staff = [
     airline: 'LionSky',
     role: 'Data Steward',
     status: 'Leave',
+    password: 'password123',
+    workspace: 'Singapore Data Cell',
+    alertDigest: 'Weekly',
+    escalationAlerts: false,
   },
 ];
+
+const currentStaff = staff[0];
 
 const recentActivity = [
   {
     id: 'activity-001',
+    memberNumber: 'AM-100001',
     title: 'Flight credited from CGK to SYD',
     meta: 'Ozi Skies OZ611',
     amount: '+2,450 miles',
@@ -191,6 +235,7 @@ const recentActivity = [
   },
   {
     id: 'activity-002',
+    memberNumber: 'AM-100001',
     title: 'Reward redemption completed',
     meta: 'Airport lounge voucher',
     amount: '-6,000 miles',
@@ -198,6 +243,7 @@ const recentActivity = [
   },
   {
     id: 'activity-003',
+    memberNumber: 'AM-100001',
     title: 'Purchased Award Miles',
     meta: '2,000 miles package',
     amount: '+2,000 miles',
@@ -205,6 +251,7 @@ const recentActivity = [
   },
   {
     id: 'activity-004',
+    memberNumber: 'AM-100001',
     title: 'Transfer received',
     meta: 'From member AM-100003',
     amount: '+750 miles',
@@ -315,6 +362,7 @@ const redemptions = [
 const identities = [
   {
     id: 'id-001',
+    memberNumber: 'AM-100001',
     type: 'Passport',
     number: 'A12355678',
     issuingCountry: 'Indonesia',
@@ -324,6 +372,7 @@ const identities = [
   },
   {
     id: 'id-002',
+    memberNumber: 'AM-100001',
     type: 'KTP',
     number: '3174091408910001',
     issuingCountry: 'Indonesia',
@@ -457,6 +506,7 @@ const reportData = {
 const baseState = {
   session: null,
   currentMember,
+  currentStaff,
   recentActivity,
   claims,
   purchases,

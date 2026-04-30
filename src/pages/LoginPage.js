@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import FormField from '../components/FormField';
 import { useAppContext } from '../context/AppContext';
-import { validateCredentials, validateLogin } from '../utils/validation';
+import { validateLogin } from '../utils/validation';
 
 const tabs = [
   { id: 'member', label: 'Member Login' },
@@ -10,7 +10,7 @@ const tabs = [
 ];
 
 export default function LoginPage() {
-  const { state, login } = useAppContext();
+  const { state, signIn } = useAppContext();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const initialRole = searchParams.get('role') === 'staff' ? 'staff' : 'member';
@@ -48,29 +48,12 @@ export default function LoginPage() {
       return;
     }
 
-    const credentialError = validateCredentials({ role, ...values });
-    if (credentialError) {
-      setFormError(credentialError);
+    const { error } = signIn({ role, ...values });
+    if (error) {
+      setFormError(error);
       return;
     }
-
-    if (role === 'member') {
-      login({
-        role: 'member',
-        email: state.currentMember.email,
-        name: `${state.currentMember.firstName} ${state.currentMember.lastName}`,
-      });
-      navigate('/member/dashboard');
-      return;
-    }
-
-    const staff = state.staff.find((person) => person.email === values.email.trim().toLowerCase());
-    login({
-      role: 'staff',
-      email: values.email.trim().toLowerCase(),
-      name: staff ? `${staff.firstName} ${staff.lastName}` : 'AeroMiles Staff',
-    });
-    navigate('/admin/dashboard');
+    navigate(role === 'member' ? '/member/dashboard' : '/admin/dashboard');
   };
 
   return (
@@ -128,6 +111,13 @@ export default function LoginPage() {
               Sign In
             </button>
           </form>
+
+          <div className="auth-footer-row">
+            <span className="muted-text">Need a demo account?</span>
+            <Link to={`/register?role=${role}`} className="auth-link" data-testid="login-register-link">
+              Create one
+            </Link>
+          </div>
         </div>
       </div>
     </div>

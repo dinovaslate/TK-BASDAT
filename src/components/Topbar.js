@@ -14,12 +14,12 @@ export default function Topbar({ title, subtitle, onLogout, onReset, userLabel }
           <Bell size={16} />
           Alerts
         </button>
-        <button type="button" className="button button-secondary icon-label" onClick={onReset}>
+        <button type="button" className="button button-secondary icon-label" onClick={onReset} data-testid="topbar-reset-button">
           <RefreshCcw size={16} />
           Reset Demo
         </button>
         <div className="user-chip">{userLabel}</div>
-        <button type="button" className="button button-primary icon-label" onClick={onLogout}>
+        <button type="button" className="button button-primary icon-label" onClick={onLogout} data-testid="topbar-logout-button">
           <LogOut size={16} />
           Logout
         </button>
