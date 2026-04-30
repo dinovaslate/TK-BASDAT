@@ -1,4 +1,5 @@
 import {
+  CircleUserRound,
   Home,
 } from 'lucide-react';
 import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -8,12 +9,17 @@ import { useAppContext } from '../context/AppContext';
 
 const memberRoutes = [
   { to: '/member/dashboard', label: 'Dashboard', icon: <Home size={18} /> },
+  { to: '/member/identity', label: 'Identity Docs', icon: <CircleUserRound size={18} /> },
 ];
 
 const routeMeta = {
   '/member/dashboard': {
     title: 'Member Dashboard',
     subtitle: 'Track balances, recent activity, and the next tier milestone.',
+  },
+  '/member/identity': {
+    title: 'Identity Documents',
+    subtitle: 'Maintain travel documents and KTP lifetime validity settings.',
   },
 };
 

@@ -4,8 +4,11 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import AdminLayout from './layouts/AdminLayout';
 import MemberLayout from './layouts/MemberLayout';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
+import MembersPage from './pages/admin/MembersPage';
+import StaffPage from './pages/admin/StaffPage';
 import LandingPage from './pages/LandingPage';
 import LoginPage from './pages/LoginPage';
+import IdentityPage from './pages/member/IdentityPage';
 import MemberDashboardPage from './pages/member/MemberDashboardPage';
 
 function AppRoutes() {
@@ -21,10 +24,13 @@ function AppRoutes() {
 
           <Route element={<MemberLayout />}>
             <Route path="/member/dashboard" element={<MemberDashboardPage />} />
+            <Route path="/member/identity" element={<IdentityPage />} />
           </Route>
 
           <Route element={<AdminLayout />}>
             <Route path="/admin/dashboard" element={<AdminDashboardPage />} />
+            <Route path="/admin/members" element={<MembersPage />} />
+            <Route path="/admin/staff" element={<StaffPage />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/" replace />} />
