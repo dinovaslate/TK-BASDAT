@@ -1,4 +1,5 @@
-import { BadgeDollarSign, CircleDollarSign, Gift } from 'lucide-react';
+import { ArrowRightLeft, BadgeDollarSign, CircleDollarSign, FileSearch, Gift } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import StatCard from '../../components/StatCard';
 import { useAppContext } from '../../context/AppContext';
 import { formatNumber, getTierProgress } from '../../utils/formatters';
@@ -6,6 +7,13 @@ import { formatNumber, getTierProgress } from '../../utils/formatters';
 export default function MemberDashboardPage() {
   const { state } = useAppContext();
   const progress = getTierProgress(state.currentMember, state.masterData.tiers);
+
+  const quickLinks = [
+    { label: 'Claim Missing Miles', to: '/member/claim', icon: <FileSearch size={16} /> },
+    { label: 'Purchase Miles', to: '/member/buy-miles', icon: <BadgeDollarSign size={16} /> },
+    { label: 'Transfer Miles', to: '/member/transfer', icon: <ArrowRightLeft size={16} /> },
+    { label: 'Browse Rewards', to: '/member/rewards', icon: <Gift size={16} /> },
+  ];
 
   return (
     <div className="stack gap-xl" data-testid="member-dashboard">
@@ -47,38 +55,17 @@ export default function MemberDashboardPage() {
         <article className="panel">
           <div className="panel-header">
             <div>
-              <div className="eyebrow">Membership snapshot</div>
-              <h2>Program standing</h2>
+              <div className="eyebrow">Quick actions</div>
+              <h2>Most used tasks</h2>
             </div>
           </div>
-          <div className="stack gap-md">
-            <div className="activity-row">
-              <div>
-                <strong>Join date</strong>
-                <span>Member since</span>
-              </div>
-              <div className="activity-values">
-                <strong>{state.currentMember.joinDate}</strong>
-              </div>
-            </div>
-            <div className="activity-row">
-              <div>
-                <strong>Primary airline</strong>
-                <span>Alliance home carrier</span>
-              </div>
-              <div className="activity-values">
-                <strong>Ozi Skies</strong>
-              </div>
-            </div>
-            <div className="activity-row">
-              <div>
-                <strong>Status</strong>
-                <span>Account eligibility</span>
-              </div>
-              <div className="activity-values">
-                <strong>{state.currentMember.status}</strong>
-              </div>
-            </div>
+          <div className="action-grid">
+            {quickLinks.map((link) => (
+              <Link key={link.to} className="action-card" to={link.to}>
+                <span className="action-icon">{link.icon}</span>
+                <strong>{link.label}</strong>
+              </Link>
+            ))}
           </div>
         </article>
       </section>
