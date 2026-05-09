@@ -4,3 +4,4 @@ webdriver-manager
 django
 djangorestframework
 django-cors-headers
+psycopg[binary]
