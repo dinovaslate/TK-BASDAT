@@ -72,10 +72,6 @@ class Tier(models.Model):
     minimal_frekuensi_terbang = models.IntegerField()
     minimal_tier_miles = models.IntegerField()
 
-    class Meta:
-        managed = False
-        db_table = 'tier'
-
 # Member class
 # Saves user data exclusive to Member
 class Member(models.Model):
@@ -83,24 +79,16 @@ class Member(models.Model):
 
     nomor_member = models.CharField(max_length=20) # auto-increment, format: M0001, M0002, ...
     tanggal_bergabung = models.DateField()
-    id_tier = models.ForeignKey(to=Tier, to_field='id_tier', db_column='id_tier', on_delete=models.CASCADE)
+    id_tier = models.ForeignKey(to=Tier, to_field='id_tier', on_delete=models.CASCADE)
 
     # Derived attributes
     award_miles = models.IntegerField()
     total_miles = models.IntegerField()
 
-    class Meta:
-        managed = False
-        db_table = 'member'
-
 # Penyedia class
 # Information for reward providers (airlines + partners)
 class Penyedia(models.Model):
     id = models.IntegerField(primary_key=True) # auto-increment, format: 1, 2, 3, ...
-
-    class Meta:
-        managed = False
-        db_table = 'penyedia'
 
 # Maskapai class
 # Information for airlines
@@ -109,21 +97,13 @@ class Maskapai(models.Model):
     id_penyedia = models.OneToOneField(to=Penyedia, to_field='id', db_column='id_penyedia', on_delete=models.CASCADE)
     nama_maskapai = models.CharField(max_length=100)
 
-    class Meta:
-        managed = False
-        db_table = 'maskapai'
-
 # Staf class
 # Information for staff (employees of an airline)
 class Staf(models.Model):
     email = models.OneToOneField(to=settings.AUTH_USER_MODEL, to_field='email', db_column='email', on_delete=models.CASCADE, primary_key=True)
 
     id_staf = models.CharField(max_length=20) # auto-increment, format: S0001, S0002, ...
-    kode_maskapai = models.ForeignKey(to=Maskapai, to_field='kode_maskapai', db_column='kode_maskapai', on_delete=models.CASCADE)
-
-    class Meta:
-        managed = False
-        db_table = 'staf'
+    kode_maskapai = models.ForeignKey(to=Maskapai, to_field='kode_maskapai', on_delete=models.CASCADE)
 
 # Mitra class
 # Information for non-airline partners
@@ -132,10 +112,6 @@ class Mitra(models.Model):
     nama_mitra = models.CharField(max_length=100)
     tanggal_kerja_sama = models.DateField()
     id_penyedia = models.OneToOneField(to=Penyedia, to_field='id', db_column='id_penyedia', on_delete=models.CASCADE)
-
-    class Meta:
-        managed = False
-        db_table = 'mitra'
 
 # Identitas class
 # Saves identity documents for users
@@ -153,10 +129,6 @@ class Identitas(models.Model):
     negara_penerbit = models.CharField(max_length=50)
     jenis = models.CharField(max_length=30, choices=JENIS_CHOICES)
 
-    class Meta:
-        managed = False
-        db_table = 'identitas'
-
 # Award Miles Package class
 # Saves data for miles packages users can buy
 class Award_Miles_Package(models.Model):
@@ -164,21 +136,13 @@ class Award_Miles_Package(models.Model):
     harga_paket = models.FloatField()
     jumlah_award_miles = models.IntegerField()
 
-    class Meta:
-        managed = False
-        db_table = 'award_miles_package'
-
 # Member Award Miles Package class
 # Saves information on purchase transactions of miles packages
 class Member_Award_Miles_Package(models.Model):
     id_award_miles_package = models.ForeignKey(to=Award_Miles_Package, to_field='id', db_column='id_award_miles_package', on_delete=models.CASCADE)
     email_member = models.ForeignKey(to=Member, to_field='email', db_column='email_member', on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(db_column='time_stamp')
+    timestamp = models.DateTimeField()
     pk = models.CompositePrimaryKey('id_award_miles_package', 'email_member', 'timestamp')
-
-    class Meta:
-        managed = False
-        db_table = 'member_award_miles_package'
 
 # Bandara class
 # Saves information about airports
@@ -187,10 +151,6 @@ class Bandara(models.Model):
     nama = models.CharField(max_length=100)
     kota = models.CharField(max_length=100)
     negara = models.CharField(max_length=100)
-
-    class Meta:
-        managed = False
-        db_table = 'bandara'
 
 # Claim Missing Miles class
 # Saves information about missing miles claims from users
@@ -218,25 +178,17 @@ class Claim_Missing_Miles(models.Model):
     kelas_kabin = models.CharField(max_length=20, choices=KELAS_CHOICES)
     pnr = models.CharField(max_length=10)
     status_penerimaan = models.CharField(max_length=20, default='Menunggu', choices=STATUS_CHOICES)
-    timestamp = models.DateTimeField(db_column='time_stamp')
-
-    class Meta:
-        managed = False
-        db_table = 'claim_missing_miles'
+    timestamp = models.DateTimeField()
 
 # Transfer class
 # Save information on miles transfer between members
 class Transfer(models.Model):
     email_member_1 = models.ForeignKey(to=Member, to_field='email', db_column='email_member_1', on_delete=models.CASCADE, related_name='trf_sender_set')
     email_member_2 = models.ForeignKey(to=Member, to_field='email', db_column='email_member_2', on_delete=models.CASCADE, related_name='trf_receiver_set')
-    timestamp = models.DateTimeField(db_column='time_stamp')
+    timestamp = models.DateTimeField()
     jumlah = models.IntegerField()
     catatan = models.CharField(max_length=255)
     pk = models.CompositePrimaryKey('email_member_1', 'email_member_2', 'timestamp')
-
-    class Meta:
-        managed = False
-        db_table = 'transfer'
 
 # Hadiah class
 # Saves information on rewards buyable with miles
@@ -249,18 +201,10 @@ class Hadiah(models.Model):
     program_end = models.DateField()
     id_penyedia = models.ForeignKey(to=Penyedia, to_field='id', db_column='id_penyedia', on_delete=models.CASCADE)
 
-    class Meta:
-        managed = False
-        db_table = 'hadiah'
-
 # Redeem class
 # Saves information on purchases of rewards with miles
 class Redeem(models.Model):
     email_member = models.ForeignKey(to=Member, to_field='email', db_column='email_member', on_delete=models.CASCADE)
     kode_hadiah = models.ForeignKey(to=Hadiah, to_field='kode_hadiah', db_column='kode_hadiah', on_delete=models.CASCADE)
-    timestamp = models.DateTimeField(db_column='time_stamp')
+    timestamp = models.DateTimeField()
     pk = models.CompositePrimaryKey('email_member', 'kode_hadiah', 'timestamp')
-
-    class Meta:
-        managed = False
-        db_table = 'redeem'
