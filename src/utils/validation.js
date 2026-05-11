@@ -50,7 +50,7 @@ export const validateRegistration = ({ roleType, ...values }, members, staff) =>
   } else if (roleType === 'staff' && !isCompanyEmail(email)) {
     errors.email = `Company email must use one of these domains: ${companyDomains.join(', ')}.`;
   } else if (findDuplicateEmail(email, members, staff)) {
-    errors.email = 'Email is already registered.';
+    errors.email = `ERROR: Email "${email}" sudah terdaftar, silakan gunakan email lain.`;
   }
 
   if (!String(values.password || '').trim()) {

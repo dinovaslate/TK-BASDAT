@@ -462,6 +462,7 @@ const reducer = (state, action) => {
 
     case 'REVIEW_CLAIM': {
       const existingClaim = state.claims.find((item) => item.id === action.payload.claimId);
+      const approvedMiles = Number(action.payload.approvedMiles ?? 1000);
       const claims = state.claims.map((claim) =>
         claim.id === action.payload.claimId
           ? { ...claim, status: action.payload.status, reviewerNote: action.payload.note || '' }
@@ -478,13 +479,13 @@ const reducer = (state, action) => {
         if (targetMember) {
           nextState = syncMemberState(nextState, {
             ...targetMember,
-            awardMiles: action.payload.awardMiles ?? Number(targetMember.awardMiles) + Number(existingClaim.requestedMiles || 0),
+            awardMiles: action.payload.awardMiles ?? Number(targetMember.awardMiles) + approvedMiles,
             tierMiles:
               action.payload.totalMiles ??
-              Number(targetMember.tierMiles || targetMember.totalMiles || 0) + Number(existingClaim.requestedMiles || 0),
+              Number(targetMember.tierMiles || targetMember.totalMiles || 0) + approvedMiles,
             totalMiles:
               action.payload.totalMiles ??
-              Number(targetMember.totalMiles || targetMember.tierMiles || 0) + Number(existingClaim.requestedMiles || 0),
+              Number(targetMember.totalMiles || targetMember.tierMiles || 0) + approvedMiles,
           });
         }
 
@@ -496,7 +497,7 @@ const reducer = (state, action) => {
               memberNumber: existingClaim.memberNumber,
               title: `Claim ${existingClaim.id} approved`,
               meta: `${existingClaim.airline} ${existingClaim.flightNumber}`,
-              amount: `+${existingClaim.requestedMiles} miles`,
+              amount: `+${approvedMiles} miles`,
             })
           ),
         };
@@ -926,6 +927,8 @@ export function AppProvider({ children }) {
           };
           awardMiles = Number(response.award_miles);
           totalMiles = Number(response.total_miles);
+        } else {
+          purchase.message = `SUKSES: Pembelian package berhasil. Award miles dan total miles Anda bertambah ${pkg.amount} miles.`;
         }
 
         const activity = createActivity({
@@ -1015,7 +1018,7 @@ export function AppProvider({ children }) {
       redeemReward: async (reward) => {
         if (!state.backendConnected && Number(reward.milesCost) > Number(state.currentMember.awardMiles)) {
           throw new Error(
-            `ERROR: Saldo award miles tidak mencukupi. Saldo Anda saat ini: ${state.currentMember.awardMiles} miles, jumlah redeem: ${Number(reward.milesCost)} miles.`
+            `ERROR: Saldo award miles tidak mencukupi. Dibutuhkan ${Number(reward.milesCost)} miles, saldo Anda: ${state.currentMember.awardMiles} miles.`
           );
         }
 
@@ -1048,6 +1051,8 @@ export function AppProvider({ children }) {
             message: response.message,
           };
           awardMiles = Number(response.award_miles);
+        } else {
+          redemption.message = `SUKSES: Redeem hadiah "${reward.title}" berhasil. Award miles Anda berkurang ${reward.milesCost} miles.`;
         }
 
         const activity = createActivity({
@@ -1102,6 +1107,7 @@ export function AppProvider({ children }) {
       },
       deleteStaff: (id) => dispatch({ type: 'DELETE_STAFF', payload: id }),
       reviewClaim: async ({ claimId, status, note }) => {
+        const existingClaim = state.claims.find((claim) => claim.id === claimId);
         let nextStatus = status;
         let awardMiles;
         let totalMiles;
@@ -1120,6 +1126,9 @@ export function AppProvider({ children }) {
           awardMiles = Number(response.award_miles);
           totalMiles = Number(response.total_miles);
           message = response.message;
+        } else if (status === 'Approved' && existingClaim) {
+          const targetMember = state.members.find((member) => member.memberNumber === existingClaim.memberNumber);
+          message = `SUKSES: Total miles Member "${targetMember?.email || existingClaim.memberNumber}" telah diperbarui. Miles ditambahkan: 1000 miles dari klaim penerbangan "${existingClaim.flightNumber}".`;
         }
 
         dispatch({ type: 'REVIEW_CLAIM', payload: { claimId, status: nextStatus, note, awardMiles, totalMiles } });
