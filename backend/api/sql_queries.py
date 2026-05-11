@@ -498,17 +498,86 @@ def get_rewards():
         """
         SELECT
             h.kode_hadiah,
-            h.nama,
+            h.nama AS nama_hadiah,
             h.miles,
             h.deskripsi,
             h.valid_start_date,
             h.program_end,
-            h.id_penyedia
+            COALESCE(m.nama_mitra, ms.nama_maskapai) AS nama_penyedia
         FROM hadiah h
+        LEFT JOIN mitra m on h.id_penyedia = m.id_penyedia
+        LEFT JOIN maskapai ms on h.id_penyedia = ms.id_penyedia
         ORDER BY h.kode_hadiah
         """
     )
 
+def insert_reward(data):
+    nama_reward = data.get('nama')
+    miles = data.get('miles')
+    deskripsi = data.get('deskripsi')
+    penyedia = data.get('penyedia')
+    start_date = data.get('valid_start_date')
+    end_date = data.get('program_end')
+
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO hadiah (
+                    nama,
+                    miles,
+                    deskripsi,
+                    valid_start_date,
+                    program_end,
+                    id_penyedia
+                )
+                VALUES (
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s,
+                    %s
+                )
+                """,
+                [nama_reward, miles, deskripsi, start_date, end_date, penyedia]
+            )
+
+def update_reward(kode_reward, data):
+    nama_reward = data.get('nama')
+    miles = data.get('miles')
+    deskripsi = data.get('deskripsi')
+    penyedia = data.get('penyedia')
+    start_date = data.get('valid_start_date')
+    end_date = data.get('program_end')
+
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE hadiah
+                SET
+                    nama = %s,
+                    miles = %s,
+                    deskripsi = %s,
+                    valid_start_date = %s,
+                    program_end = %s,
+                    penyedia = %s
+                WHERE kode_hadiah = %s
+                """,
+                [nama_reward, miles, deskripsi, start_date, end_date, penyedia, kode_reward]
+            )
+
+def delete_reward(kode_reward):
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM hadiah
+                WHERE kode_hadiah = %s
+                """,
+                [kode_reward]
+            )
 
 def get_airports():
     return fetch_all(
@@ -548,3 +617,69 @@ def get_miles_packages():
         ORDER BY jumlah_award_miles
         """
     )
+
+def get_partners():
+    return fetch_all(
+        """
+        SELECT id_penyedia, nama_mitra, email_mitra, tanggal_kerja_sama
+        FROM mitra
+        ORDER BY nama_mitra
+        """
+    )
+
+def insert_partner(data):
+    email = data.get('email_mitra')
+    nama_mitra = data.get('nama_mitra')
+    tanggal_kerja_sama = data.get('tanggal_kerja_sama')
+
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                INSERT INTO PENYEDIA DEFAULT VALUES RETURNING id
+                """
+            )
+            id_penyedia = cursor.fetchone()[0]
+
+            cursor.execute(
+                """
+                INSERT INTO mitra (
+                id_penyedia,
+                email_mitra,
+                nama_mitra,
+                tanggal_kerja_sama
+                )
+                VALUES (
+                %s
+                %s,
+                %s,
+                %s)
+                """,
+                [id_penyedia, email, nama_mitra, tanggal_kerja_sama]
+            )
+
+def update_partner(email, data):
+    new_nama = data.get('nama_mitra')
+    new_tanggal = data.get('tanggal_kerja_sama')
+
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                UPDATE mitra
+                SET nama_mitra = %s, tanggal_kerja_sama = %s
+                WHERE email_mitra = %s
+                """,
+                [new_nama, new_tanggal, email]
+            )
+
+def delete_partner(email):
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                """
+                DELETE FROM mitra
+                WHERE email_mitra = %s
+                """,
+                [email]
+            )

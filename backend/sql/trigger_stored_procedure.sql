@@ -162,3 +162,80 @@ AFTER UPDATE OF total_miles ON member
 FOR EACH ROW
 WHEN (OLD.total_miles IS DISTINCT FROM NEW.total_miles)
 EXECUTE FUNCTION fn_update_member_tier_after_total_miles_change();
+
+-- =========================================================
+-- TRIGGER GROUP 5
+-- 5.1 Synchronize Member Miles After Approval
+-- 5.2 Ranking of Members by Total Miles
+-- =========================================================
+
+------------------------------------------------------------
+-- 5.1 Synchronize Member Miles After Approval
+------------------------------------------------------------
+DROP TRIGGER IF EXISTS trg_synchronize_member_miles_on_approval ON claim_missing_miles;
+DROP FUNCTION IF EXISTS fn_synchronize_member_miles_on_approval();
+
+CREATE OR REPLACE FUNCTION fn_synchronize_member_miles_on_approval()
+RETURNS TRIGGER AS $$
+    BEGIN
+        UPDATE member
+        SET award_miles = award_miles + 1000,
+        total_miles = total_miles + 1000
+        WHERE email = NEW.email_member;
+
+        RAISE NOTICE 'SUKSES: Total miles Member "%" telah diperbarui. Miles ditambahkan: 1000 miles dari klaim penerbangan "%".',
+            NEW.email_member,
+            NEW.flight_number;
+
+        RETURN NEW;
+    END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_synchronize_member_miles_on_approval
+AFTER UPDATE OF status_penerimaan ON claim_missing_miles
+FOR EACH ROW
+WHEN (OLD.status_penerimaan IS DISTINCT FROM 'Disetujui' AND NEW.status_penerimaan = 'Disetujui')
+EXECUTE FUNCTION fn_synchronize_member_miles_on_approval();
+
+------------------------------------------------------------
+-- 5.2 Ranking of Members by Total Miles
+-- (not trigger)
+------------------------------------------------------------
+
+DROP FUNCTION IF EXISTS fn_rank_top_5_members();
+
+CREATE OR REPLACE FUNCTION fn_rank_top_5_members()
+RETURNS TABLE (
+    peringkat INTEGER,
+    email_member VARCHAR,
+    nama_lengkap VARCHAR,
+    total_miles_member INTEGER
+) AS $$
+    DECLARE
+        top_email VARCHAR;
+        top_miles INTEGER;
+    BEGIN
+        -- Get first place for success message
+        SELECT email, total_miles
+        INTO top_email, top_miles
+        FROM member
+        ORDER BY total_miles DESC
+        LIMIT 1;
+
+        -- Display success message
+        RAISE NOTICE 'SUKSES: Daftar Top 5 Member berdasarkan total miles berhasil diperbarui, dengan peringkat pertama "%" memiliki % miles.',
+            top_email,
+            top_miles;
+
+        -- Get top 5 (table)
+        RETURN QUERY
+        SELECT
+            (row_number() OVER (ORDER BY m.total_miles DESC))::INT as peringkat,
+            m.email,
+            p.nama_lengkap,
+            m.total_miles
+        FROM member m JOIN pengguna p on m.username = p.username
+        ORDER BY m.total_miles DESC
+        LIMIT 5;
+    END;
+$$ LANGUAGE plpgsql;
