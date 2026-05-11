@@ -1,0 +1,11 @@
+node_modules
+build
+.git
+.github
+.pytest_cache
+.venv
+.idea
+backend/db.sqlite3
+*.log
+__pycache__/
+*.pyc
