@@ -288,9 +288,9 @@ BEGIN
     WHERE m.email = v_member_email;
 
     IF v_award_miles < v_reward_miles THEN
-        RAISE EXCEPTION 'ERROR: Saldo award miles tidak mencukupi. Saldo Anda saat ini: % miles, jumlah redeem: % miles.',
-            v_award_miles,
-            v_reward_miles;
+        RAISE EXCEPTION 'ERROR: Saldo award miles tidak mencukupi. Dibutuhkan % miles, saldo Anda: % miles.',
+            v_reward_miles,
+            v_award_miles;
     END IF;
 
     UPDATE member
@@ -312,9 +312,9 @@ BEGIN
     RETURN QUERY
     SELECT
         FORMAT(
-            'SUKSES: Redeem hadiah "%s" berhasil. Saldo award miles tersisa: %s miles.',
+            'SUKSES: Redeem hadiah "%s" berhasil. Award miles Anda berkurang %s miles.',
             v_reward_name,
-            m.award_miles
+            v_reward_miles
         ) AS message,
         v_member_email AS email_member,
         p_kode_hadiah AS kode_hadiah,
@@ -397,7 +397,7 @@ BEGIN
     RETURN QUERY
     SELECT
         FORMAT(
-            'SUKSES: Pembelian paket %s miles berhasil. Award miles dan total miles telah diperbarui.',
+            'SUKSES: Pembelian package berhasil. Award miles dan total miles Anda bertambah %s miles.',
             v_package_miles
         ) AS message,
         v_member_email AS email_member,
@@ -728,7 +728,14 @@ BEGIN
 
     RETURN QUERY
     SELECT
-        FORMAT('SUKSES: Klaim "%s" berhasil diperbarui menjadi "%s".', c.id, c.status_penerimaan) AS message,
+        CASE
+            WHEN c.status_penerimaan = 'Disetujui' THEN FORMAT(
+                'SUKSES: Total miles Member "%s" telah diperbarui. Miles ditambahkan: 1000 miles dari klaim penerbangan "%s".',
+                c.email_member,
+                c.flight_number
+            )
+            ELSE FORMAT('SUKSES: Klaim "%s" berhasil diperbarui menjadi "%s".', c.id, c.status_penerimaan)
+        END AS message,
         c.id,
         c.email_member,
         c.email_staf,

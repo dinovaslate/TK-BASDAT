@@ -66,6 +66,25 @@ export default function ClaimPage() {
       return;
     }
 
+    const duplicateClaim = memberClaims.find(
+      (claim) =>
+        claim.id !== values.id &&
+        String(claim.flightNumber || '').trim().toLowerCase() === String(values.flightNumber || '').trim().toLowerCase() &&
+        String(claim.flightDate || '').slice(0, 10) === String(values.flightDate || '').slice(0, 10) &&
+        String(claim.ticketNumber || '').trim().toLowerCase() === String(values.ticketNumber || '').trim().toLowerCase()
+    );
+
+    if (duplicateClaim) {
+      const message = `ERROR: Klaim untuk penerbangan "${values.flightNumber}" pada tanggal "${values.flightDate}" dengan nomor tiket "${values.ticketNumber}" sudah pernah diajukan sebelumnya.`;
+      setFormError(message);
+      notify({
+        type: 'error',
+        title: 'Claim blocked',
+        message,
+      });
+      return;
+    }
+
     try {
       const claim = await saveClaim(values);
       setSubmittedClaim(claim);

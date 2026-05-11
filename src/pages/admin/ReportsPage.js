@@ -19,6 +19,9 @@ export default function ReportsPage() {
         totalMiles: Number(member.totalMiles || member.tierMiles || 0),
       }));
   }, [state.members, state.reportData.topMembers]);
+  const topMemberMessage = topMembers.length
+    ? `SUKSES: Daftar Top 5 Member berdasarkan total miles berhasil diperbarui, dengan peringkat pertama "${topMembers[0].email}" memiliki ${topMembers[0].totalMiles} miles.`
+    : '';
 
   return (
     <div className="stack gap-xl" data-testid="admin-reports-page">
@@ -107,6 +110,7 @@ export default function ReportsPage() {
             <h2>Highest total miles</h2>
           </div>
         </div>
+        {topMemberMessage ? <div className="success-banner">{topMemberMessage}</div> : null}
         <div className="stack gap-sm" data-testid="top-members-report">
           {topMembers.map((member) => (
             <div key={member.email} className="metric-line">

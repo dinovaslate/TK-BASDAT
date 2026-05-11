@@ -446,6 +446,7 @@ def test_purchase_miles_success(driver):
   click_testid(driver, 'buy-package-1000')
   click_testid(driver, 'buy-confirm')
   wait_for_testid(driver, 'purchase-success')
+  wait_for_text(driver, 'SUKSES: Pembelian package berhasil. Award miles dan total miles Anda bertambah 1000 miles.')
 
 
 def test_transfer_miles_success(driver):
@@ -455,6 +456,7 @@ def test_transfer_miles_success(driver):
   input_testid(driver, 'transfer-amount-input', '500')
   click_testid(driver, 'transfer-confirm')
   wait_for_testid(driver, 'transfer-success')
+  wait_for_text(driver, 'SUKSES: Transfer 500 miles dari "adi.pratama@gmail.com" ke "maya.laras@gmail.com" berhasil dicatat.')
 
 
 def test_add_member_success(driver):
@@ -783,6 +785,9 @@ def test_admin_sidebar_tabs_claims_transactions_master_rewards_reports(driver):
   click_testid(driver, 'admin-nav-reports')
   WebDriverWait(driver, TIMEOUT).until(EC.url_contains('/admin/reports'))
   wait_for_testid(driver, 'admin-reports-page')
+  wait_for_testid(driver, 'top-members-report')
+  wait_for_text(driver, 'SUKSES: Daftar Top 5 Member berdasarkan total miles berhasil diperbarui')
+  wait_for_text(driver, 'kenji.satou@gmail.com')
 
 
 def test_approve_claim_success(driver):
@@ -790,6 +795,7 @@ def test_approve_claim_success(driver):
   visit_path(driver, '/admin/claims')
   wait_for_testid(driver, 'claim-review-page')
   click_testid(driver, 'approve-claim-button')
+  wait_for_text(driver, 'SUKSES: Total miles Member "adi.pratama@gmail.com" telah diperbarui. Miles ditambahkan: 1000 miles dari klaim penerbangan "OZ611".')
   WebDriverWait(driver, TIMEOUT).until(
     EC.presence_of_element_located(
       (
@@ -818,7 +824,7 @@ def test_claim_request_more_info_success(driver):
     EC.presence_of_element_located(
       (
         By.XPATH,
-        "//h2[normalize-space()='CLM-260401']/ancestor::section[contains(@class,'panel')]//*[contains(text(),'More Info Requested')]",
+        "//h2[normalize-space()='CLM-260401']/ancestor::section[contains(@class,'panel')]//*[contains(text(),'Pending Review')]",
       )
     )
   )
@@ -857,7 +863,7 @@ def test_identity_crud_end_to_end(driver):
 def test_member_registration_rejects_duplicate_email(driver):
   register_member(driver, 'adi.pratama@gmail.com')
   click_testid(driver, 'register-submit')
-  wait_for_text(driver, 'Email is already registered')
+  wait_for_text(driver, 'ERROR: Email "adi.pratama@gmail.com" sudah terdaftar, silakan gunakan email lain.')
 
 
 def test_staff_registration_rejects_personal_email(driver):
@@ -900,6 +906,24 @@ def test_claim_rejects_same_origin_and_destination(driver):
   wait_for_text(driver, 'Origin and destination cannot be the same')
 
 
+def test_claim_rejects_duplicate_flight_date_ticket_member(driver):
+  login_member(driver)
+  visit_path(driver, '/member/claim')
+  select_testid(driver, 'claim-airline-select', 'Ozi Skies')
+  input_testid(driver, 'claim-flight-number-input', 'OZ611')
+  set_date_testid(driver, 'claim-flight-date-input', '2026-04-01')
+  select_testid(driver, 'claim-origin-select', 'CGK')
+  select_testid(driver, 'claim-destination-select', 'SYD')
+  select_testid(driver, 'claim-cabin-class-select', 'Business')
+  input_testid(driver, 'claim-ticket-number-input', '0811234567890')
+  input_testid(driver, 'claim-pnr-input', 'DUP123')
+  click_testid(driver, 'claim-submit')
+  wait_for_text(
+    driver,
+    'ERROR: Klaim untuk penerbangan "OZ611" pada tanggal "2026-04-01" dengan nomor tiket "0811234567890" sudah pernah diajukan sebelumnya.'
+  )
+
+
 def test_purchase_requires_package_selection(driver):
   login_member(driver)
   visit_path(driver, '/member/buy-miles')
@@ -913,7 +937,7 @@ def test_transfer_rejects_excessive_amount(driver):
   input_testid(driver, 'transfer-recipient-input', 'AM-100002')
   input_testid(driver, 'transfer-amount-input', '999999')
   click_testid(driver, 'transfer-confirm')
-  wait_for_text(driver, 'Transfer amount cannot exceed your Award Miles balance')
+  wait_for_text(driver, 'ERROR: Saldo award miles tidak mencukupi. Saldo Anda saat ini: 18250 miles, jumlah transfer: 999999 miles.')
 
 
 def test_transfer_rejects_self_transfer(driver):
@@ -929,7 +953,7 @@ def test_reward_redeem_insufficient_miles(driver):
   login_member(driver)
   visit_path(driver, '/member/rewards')
   click_testid(driver, 'reward-redeem-rwd-004')
-  wait_for_text(driver, 'Insufficient Award Miles for this redemption')
+  wait_for_text(driver, 'ERROR: Saldo award miles tidak mencukupi. Dibutuhkan 30000 miles, saldo Anda: 18250 miles.')
 
 
 def test_reward_redeem_success(driver):
@@ -937,7 +961,7 @@ def test_reward_redeem_success(driver):
   visit_path(driver, '/member/rewards')
   click_testid(driver, 'reward-redeem-rwd-001')
   success_toast = wait_for_testid(driver, 'toast-success')
-  assert 'Reward redeemed' in success_toast.text
+  assert 'SUKSES: Redeem hadiah "Airport Lounge Voucher" berhasil. Award miles Anda berkurang 6000 miles.' in success_toast.text
 
 
 def test_add_member_invalid_email(driver):
