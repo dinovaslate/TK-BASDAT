@@ -67,9 +67,66 @@ def staff_list(request):
     return Response(sql_queries.get_staff())
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def claim_list(request):
+    if request.method == 'POST':
+        try:
+            claim = sql_queries.submit_missing_miles_claim(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(claim, status=201)
+
     return Response(sql_queries.get_claims())
+
+
+@api_view(['PATCH', 'POST'])
+def claim_review(request, claim_id):
+    try:
+        claim = sql_queries.review_missing_miles_claim(claim_id, request.data)
+    except DatabaseError as error:
+        return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+    return Response(claim)
+
+
+@api_view(['GET', 'POST'])
+def transfer_list(request):
+    if request.method == 'POST':
+        try:
+            transfer = sql_queries.transfer_miles(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(transfer, status=201)
+
+    return Response(sql_queries.get_transfers())
+
+
+@api_view(['GET', 'POST'])
+def redeem_list(request):
+    if request.method == 'POST':
+        try:
+            redeem = sql_queries.redeem_reward(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(redeem, status=201)
+
+    return Response(sql_queries.get_redemptions())
+
+
+@api_view(['GET', 'POST'])
+def miles_package_purchase_list(request):
+    if request.method == 'POST':
+        try:
+            purchase = sql_queries.purchase_miles_package(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(purchase, status=201)
+
+    return Response(sql_queries.get_package_purchases())
 
 
 @api_view(['GET'])
@@ -95,3 +152,8 @@ def tier_list(request):
 @api_view(['GET'])
 def miles_package_list(request):
     return Response(sql_queries.get_miles_packages())
+
+
+@api_view(['GET'])
+def top_member_report(request):
+    return Response(sql_queries.get_top_members())
