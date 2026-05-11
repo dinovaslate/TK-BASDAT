@@ -20,7 +20,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 load_dotenv(BASE_DIR / '.env')
 
 
-def env_list(name, default):
+def env_list(name, default=''):
     return [item.strip() for item in os.getenv(name, default).split(',') if item.strip()]
 
 
@@ -38,6 +38,7 @@ SECRET_KEY = os.getenv('SECRET_KEY', 'django-insecure-7zso2m=a=zryk9te9b3+*b45zy
 DEBUG = env_bool('DEBUG', 'True')
 
 ALLOWED_HOSTS = env_list('ALLOWED_HOSTS', 'localhost,127.0.0.1')
+CSRF_TRUSTED_ORIGINS = env_list('CSRF_TRUSTED_ORIGINS')
 
 
 # Application definition
@@ -87,14 +88,21 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 
 # PostgreSQL database. DB_NAME is the database; DB_SCHEMA is the schema inside it.
 DB_SCHEMA = os.getenv('DB_SCHEMA', 'aeromiles')
+INSTANCE_CONNECTION_NAME = os.getenv('INSTANCE_CONNECTION_NAME', '').strip()
+DB_HOST = (
+    f'/cloudsql/{INSTANCE_CONNECTION_NAME}'
+    if INSTANCE_CONNECTION_NAME
+    else os.getenv('DB_HOST', 'localhost')
+)
+DB_PASSWORD = os.getenv('DB_PASSWORD') or os.getenv('DB_PASS', '')
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
         'NAME': os.getenv('DB_NAME', 'aeromiles_db'),
         'USER': os.getenv('DB_USER', 'postgres'),
-        'PASSWORD': os.getenv('DB_PASSWORD', ''),
-        'HOST': os.getenv('DB_HOST', 'localhost'),
+        'PASSWORD': DB_PASSWORD,
+        'HOST': DB_HOST,
         'PORT': os.getenv('DB_PORT', '5432'),
         'OPTIONS': {
             'options': f'-c search_path={DB_SCHEMA},public',
@@ -103,6 +111,7 @@ DATABASES = {
 }
 
 CORS_ALLOWED_ORIGINS = env_list('CORS_ALLOWED_ORIGINS', 'http://localhost:3000')
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [],
@@ -148,5 +157,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
