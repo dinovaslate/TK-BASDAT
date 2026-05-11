@@ -13,20 +13,29 @@ export default function BuyMilesPage() {
     [selectedPackageId, state.masterData.milesPackages]
   );
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selectedPackage) {
       setError('Please select a miles package before confirming.');
       return;
     }
 
-    const purchase = purchaseMiles(selectedPackage);
-    setReceipt(purchase);
-    setError('');
-    notify({
-      type: 'success',
-      title: 'Miles purchased',
-      message: `${selectedPackage.label} has been added to the wallet.`,
-    });
+    try {
+      const purchase = await purchaseMiles(selectedPackage);
+      setReceipt(purchase);
+      setError('');
+      notify({
+        type: 'success',
+        title: 'Miles purchased',
+        message: purchase.message || `${selectedPackage.label} has been added to the wallet.`,
+      });
+    } catch (error) {
+      setError(error.message);
+      notify({
+        type: 'error',
+        title: 'Purchase blocked',
+        message: error.message,
+      });
+    }
   };
 
   return (

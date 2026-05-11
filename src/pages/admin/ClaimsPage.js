@@ -46,38 +46,50 @@ export default function ClaimsPage() {
     },
   ];
 
-  const approveSelected = () => {
-    reviewClaim({ claimId: selectedClaim.id, status: 'Approved', note: 'Approved in staff console.' });
-    notify({
-      type: 'success',
-      title: 'Claim approved',
-      message: `${selectedClaim.id} moved to Approved.`,
-    });
+  const approveSelected = async () => {
+    try {
+      const result = await reviewClaim({ claimId: selectedClaim.id, status: 'Approved', note: 'Approved in staff console.' });
+      notify({
+        type: 'success',
+        title: 'Claim approved',
+        message: result.message || `${selectedClaim.id} moved to Approved.`,
+      });
+    } catch (error) {
+      notify({ type: 'error', title: 'Review blocked', message: error.message });
+    }
   };
 
-  const rejectSelected = () => {
+  const rejectSelected = async () => {
     const error = validateRejectReason(rejectReason);
     setRejectError(error);
     if (error) {
       return;
     }
-    reviewClaim({ claimId: selectedClaim.id, status: 'Rejected', note: rejectReason });
-    notify({
-      type: 'success',
-      title: 'Claim rejected',
-      message: `${selectedClaim.id} updated with rejection reason.`,
-    });
-    setRejectReason('');
-    setRejectError('');
+    try {
+      const result = await reviewClaim({ claimId: selectedClaim.id, status: 'Rejected', note: rejectReason });
+      notify({
+        type: 'success',
+        title: 'Claim rejected',
+        message: result.message || `${selectedClaim.id} updated with rejection reason.`,
+      });
+      setRejectReason('');
+      setRejectError('');
+    } catch (requestError) {
+      notify({ type: 'error', title: 'Review blocked', message: requestError.message });
+    }
   };
 
-  const requestInfo = () => {
-    reviewClaim({ claimId: selectedClaim.id, status: 'More Info Requested', note: 'Please provide supporting e-ticket or boarding pass.' });
-    notify({
-      type: 'success',
-      title: 'More information requested',
-      message: `${selectedClaim.id} returned to member follow-up.`,
-    });
+  const requestInfo = async () => {
+    try {
+      const result = await reviewClaim({ claimId: selectedClaim.id, status: 'Pending Review', note: 'Please provide supporting e-ticket or boarding pass.' });
+      notify({
+        type: 'success',
+        title: 'More information requested',
+        message: result.message || `${selectedClaim.id} returned to member follow-up.`,
+      });
+    } catch (error) {
+      notify({ type: 'error', title: 'Review blocked', message: error.message });
+    }
   };
 
   return (

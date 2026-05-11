@@ -14,28 +14,40 @@ export default function TransferMilesPage() {
   const { state, transferMiles, notify } = useAppContext();
   const [values, setValues] = useState(defaultValues);
   const [errors, setErrors] = useState({});
+  const [formMessage, setFormMessage] = useState(null);
   const [receipt, setReceipt] = useState(null);
   const recentTransfers = state.transfers.filter(
     (item) => item.fromMemberNumber === state.currentMember.memberNumber
   ).length;
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validateTransfer(values, state.currentMember);
     setErrors(nextErrors);
+    setFormMessage(null);
 
     if (Object.keys(nextErrors).length) {
       return;
     }
 
-    const transfer = transferMiles(values);
-    setReceipt(transfer);
-    setValues(defaultValues);
-    notify({
-      type: 'success',
-      title: 'Transfer completed',
-      message: `${transfer.amount.toLocaleString('en-US')} miles sent to ${transfer.toMemberNumber}.`,
-    });
+    try {
+      const transfer = await transferMiles(values);
+      setReceipt(transfer);
+      setValues(defaultValues);
+      setFormMessage({ type: 'success', text: transfer.message });
+      notify({
+        type: 'success',
+        title: 'Transfer completed',
+        message: transfer.message,
+      });
+    } catch (error) {
+      setFormMessage({ type: 'error', text: error.message });
+      notify({
+        type: 'error',
+        title: 'Transfer blocked',
+        message: error.message,
+      });
+    }
   };
 
   return (
@@ -71,6 +83,9 @@ export default function TransferMilesPage() {
             value={values.note}
             onChange={(event) => setValues((current) => ({ ...current, note: event.target.value }))}
           />
+          {formMessage ? (
+            <div className={formMessage.type === 'error' ? 'error-banner' : 'success-banner'}>{formMessage.text}</div>
+          ) : null}
           <button type="submit" className="button button-primary" data-testid="transfer-confirm">
             Confirm Transfer
           </button>

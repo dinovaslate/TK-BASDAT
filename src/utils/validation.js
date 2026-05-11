@@ -140,8 +140,6 @@ export const validateTransfer = (values, currentMember) => {
     errors.amount = 'Transfer amount is required.';
   } else if (Number.isNaN(amount) || amount <= 0) {
     errors.amount = 'Transfer amount must be greater than 0.';
-  } else if (amount > Number(currentMember.awardMiles)) {
-    errors.amount = 'Transfer amount cannot exceed your Award Miles balance.';
   }
 
   return errors;

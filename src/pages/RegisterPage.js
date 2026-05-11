@@ -35,11 +35,13 @@ export default function RegisterPage() {
   const [role, setRole] = useState(initialRole);
   const [values, setValues] = useState(defaultValues);
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
 
   useEffect(() => {
     setRole(initialRole);
     setValues(defaultValues);
     setErrors({});
+    setFormError('');
   }, [initialRole]);
 
   const sessionRedirect = useMemo(() => {
@@ -58,33 +60,38 @@ export default function RegisterPage() {
 
   const handleChange = (key, value) => setValues((current) => ({ ...current, [key]: value }));
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validateRegistration({ roleType: role, ...values }, state.members, state.staff);
     setErrors(nextErrors);
+    setFormError('');
 
     if (Object.keys(nextErrors).length) {
       return;
     }
 
-    if (role === 'member') {
-      const member = registerMember(values);
+    try {
+      if (role === 'member') {
+        const member = await registerMember(values);
+        notify({
+          type: 'success',
+          title: 'Member account created',
+          message: member.message || `${member.memberNumber} is ready to use.`,
+        });
+        navigate('/member/dashboard');
+        return;
+      }
+
+      const person = await registerStaff(values);
       notify({
         type: 'success',
-        title: 'Member account created',
-        message: `${member.memberNumber} is ready to use.`,
+        title: 'Staff account created',
+        message: person.message || `${person.staffId} now has operations access.`,
       });
-      navigate('/member/dashboard');
-      return;
+      navigate('/admin/dashboard');
+    } catch (error) {
+      setFormError(error.message);
     }
-
-    const person = registerStaff(values);
-    notify({
-      type: 'success',
-      title: 'Staff account created',
-      message: `${person.staffId} now has operations access.`,
-    });
-    navigate('/admin/dashboard');
   };
 
   return (
@@ -93,8 +100,8 @@ export default function RegisterPage() {
         <div className="login-aside">
           <div className="hero-kicker">AeroMiles</div>
           <h1>Register a mock loyalty or operations account for full front-end testing.</h1>
-          <p>
-            Registration writes to local state only. The new account can sign in immediately and is isolated from the seeded demo data.
+            <p>
+            Registration uses the backend when available, with local demo state kept for offline UI testing.
           </p>
         </div>
 
@@ -189,7 +196,7 @@ export default function RegisterPage() {
                   label="Airline"
                   value={values.airline}
                   onChange={(event) => handleChange('airline', event.target.value)}
-                  options={state.masterData.airlines.map((airline) => ({ value: airline.name, label: airline.name }))}
+                  options={state.masterData.airlines.map((airline) => ({ value: airline.code || airline.name, label: airline.name }))}
                   error={errors.airline}
                   data-testid="register-airline-select"
                 />
@@ -219,6 +226,12 @@ export default function RegisterPage() {
               error={errors.confirmPassword}
               data-testid="register-confirm-password-input"
             />
+
+            {formError ? (
+              <div className="error-banner span-full" data-testid="register-error">
+                {formError}
+              </div>
+            ) : null}
 
             <div className="dialog-actions dialog-actions-full">
               <Link to={`/login?role=${role}`} className="button button-secondary" data-testid="register-login-link">

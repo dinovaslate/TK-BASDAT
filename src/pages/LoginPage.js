@@ -38,7 +38,7 @@ export default function LoginPage() {
     return <Navigate to={sessionRedirect} replace />;
   }
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validateLogin({ role, ...values });
     setErrors(nextErrors);
@@ -48,7 +48,7 @@ export default function LoginPage() {
       return;
     }
 
-    const { error } = signIn({ role, ...values });
+    const { error } = await signIn({ role, ...values });
     if (error) {
       setFormError(error);
       return;

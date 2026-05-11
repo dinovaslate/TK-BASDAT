@@ -26,6 +26,7 @@ export default function ClaimPage() {
   const { state, notify, saveClaim, deleteClaim } = useAppContext();
   const [values, setValues] = useState(defaultValues);
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [submittedClaim, setSubmittedClaim] = useState(null);
   const [selectedClaim, setSelectedClaim] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
@@ -55,24 +56,34 @@ export default function ClaimPage() {
     setErrors({});
   };
 
-  const handleSubmit = (event) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
     const nextErrors = validateClaim(values);
     setErrors(nextErrors);
+    setFormError('');
 
     if (Object.keys(nextErrors).length) {
       return;
     }
 
-    const claim = saveClaim(values);
-    setSubmittedClaim(claim);
-    setValues(defaultValues);
-    setErrors({});
-    notify({
-      type: 'success',
-      title: values.id ? 'Claim updated' : 'Claim submitted',
-      message: `${claim.id} is now pending review.`,
-    });
+    try {
+      const claim = await saveClaim(values);
+      setSubmittedClaim(claim);
+      setValues(defaultValues);
+      setErrors({});
+      notify({
+        type: 'success',
+        title: values.id ? 'Claim updated' : 'Claim submitted',
+        message: claim.message || `${claim.id} is now pending review.`,
+      });
+    } catch (error) {
+      setFormError(error.message);
+      notify({
+        type: 'error',
+        title: 'Claim blocked',
+        message: error.message,
+      });
+    }
   };
 
   const canMutateClaim = (claim) => claim.status !== 'Approved';
@@ -226,6 +237,7 @@ export default function ClaimPage() {
         </div>
 
         <div className="panel-actions claim-submit-row">
+          {formError ? <div className="error-banner span-full">{formError}</div> : null}
           {values.id ? (
             <button type="button" className="button button-secondary" onClick={() => openEditor(null)} data-testid="claim-cancel-edit">
               Cancel Edit

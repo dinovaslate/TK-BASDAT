@@ -1,8 +1,24 @@
+import { useMemo } from 'react';
 import { useAppContext } from '../../context/AppContext';
 import { formatCurrencyIdr, formatNumber } from '../../utils/formatters';
 
 export default function ReportsPage() {
   const { state } = useAppContext();
+  const topMembers = useMemo(() => {
+    if (state.reportData.topMembers?.length) {
+      return state.reportData.topMembers;
+    }
+
+    return [...state.members]
+      .sort((left, right) => Number(right.totalMiles || right.tierMiles || 0) - Number(left.totalMiles || left.tierMiles || 0))
+      .slice(0, 5)
+      .map((member, index) => ({
+        rank: index + 1,
+        email: member.email,
+        name: [member.firstName, member.lastName].filter(Boolean).join(' '),
+        totalMiles: Number(member.totalMiles || member.tierMiles || 0),
+      }));
+  }, [state.members, state.reportData.topMembers]);
 
   return (
     <div className="stack gap-xl" data-testid="admin-reports-page">
@@ -82,6 +98,23 @@ export default function ReportsPage() {
             ))}
           </div>
         </article>
+      </section>
+
+      <section className="panel">
+        <div className="panel-header">
+          <div>
+            <div className="eyebrow">Top members</div>
+            <h2>Highest total miles</h2>
+          </div>
+        </div>
+        <div className="stack gap-sm" data-testid="top-members-report">
+          {topMembers.map((member) => (
+            <div key={member.email} className="metric-line">
+              <span>{member.rank}. {member.name || member.email}</span>
+              <strong>{formatNumber(member.totalMiles)} miles</strong>
+            </div>
+          ))}
+        </div>
       </section>
     </div>
   );

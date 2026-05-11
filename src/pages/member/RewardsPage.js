@@ -29,25 +29,24 @@ export default function RewardsPage() {
     });
   }, [category, search, state.rewards]);
 
-  const handleRedeem = (reward) => {
-    if (reward.milesCost > state.currentMember.awardMiles) {
-      setError('Insufficient Award Miles for this redemption.');
+  const handleRedeem = async (reward) => {
+    try {
+      const receipt = await redeemReward(reward);
+      setSelectedReward(null);
+      setError('');
+      notify({
+        type: 'success',
+        title: 'Reward redeemed',
+        message: receipt.message || `${reward.title} issued under ${receipt.id}.`,
+      });
+    } catch (error) {
+      setError(error.message);
       notify({
         type: 'error',
         title: 'Redemption blocked',
-        message: 'Insufficient Award Miles for this reward.',
+        message: error.message,
       });
-      return;
     }
-
-    const receipt = redeemReward(reward);
-    setSelectedReward(null);
-    setError('');
-    notify({
-      type: 'success',
-      title: 'Reward redeemed',
-      message: `${reward.title} issued under ${receipt.id}.`,
-    });
   };
 
   return (
