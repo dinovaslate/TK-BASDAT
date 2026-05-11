@@ -10,6 +10,20 @@ def health_check(request):
     return Response({'status': 'ok', 'message': 'AeroMiles API is running'})
 
 
+@api_view(['GET'])
+def dashboard(request):
+    email = request.query_params.get('email')
+    if not email:
+        return Response({'error': 'Email wajib diisi.'}, status=400)
+
+    try:
+        return Response(sql_queries.get_dashboard(email))
+    except sql_queries.DashboardError as error:
+        return Response({'error': str(error)}, status=error.status_code)
+    except DatabaseError as error:
+        return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+
 @api_view(['POST'])
 def login(request):
     try:

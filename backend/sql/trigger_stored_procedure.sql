@@ -67,3 +67,98 @@ BEGIN
     END IF;
 END;
 $$ LANGUAGE plpgsql;
+
+-- =========================================================
+-- TRIGGER GROUP 4
+-- 4.1 Duplicate Missing Miles Claim Validation
+-- 4.2 Automatic Member Tier Update
+-- =========================================================
+
+------------------------------------------------------------
+-- 4.1 Duplicate Missing Miles Claim Validation
+------------------------------------------------------------
+
+DROP TRIGGER IF EXISTS trg_prevent_duplicate_claim_missing_miles ON claim_missing_miles;
+DROP FUNCTION IF EXISTS fn_prevent_duplicate_claim_missing_miles();
+
+CREATE OR REPLACE FUNCTION fn_prevent_duplicate_claim_missing_miles()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF EXISTS (
+        SELECT 1
+        FROM claim_missing_miles c
+        WHERE c.email_member = NEW.email_member
+          AND c.flight_number = NEW.flight_number
+          AND c.tanggal_penerbangan = NEW.tanggal_penerbangan
+          AND c.nomor_tiket = NEW.nomor_tiket
+          AND (TG_OP = 'INSERT' OR c.id <> NEW.id)
+    ) THEN
+        RAISE EXCEPTION 'ERROR: Klaim untuk penerbangan "%" pada tanggal "%" dengan nomor tiket "%" sudah pernah diajukan sebelumnya.',
+            NEW.flight_number,
+            NEW.tanggal_penerbangan,
+            NEW.nomor_tiket;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_prevent_duplicate_claim_missing_miles
+BEFORE INSERT OR UPDATE ON claim_missing_miles
+FOR EACH ROW
+EXECUTE FUNCTION fn_prevent_duplicate_claim_missing_miles();
+
+------------------------------------------------------------
+-- 4.2 Automatic Member Tier Update
+------------------------------------------------------------
+
+DROP TRIGGER IF EXISTS trg_update_member_tier_after_total_miles_change ON member;
+DROP FUNCTION IF EXISTS fn_update_member_tier_after_total_miles_change();
+
+CREATE OR REPLACE FUNCTION fn_update_member_tier_after_total_miles_change()
+RETURNS TRIGGER AS $$
+DECLARE
+    flight_frequency INTEGER;
+    old_tier_name VARCHAR;
+    eligible_tier_id VARCHAR;
+    eligible_tier_name VARCHAR;
+BEGIN
+    SELECT COUNT(*)
+    INTO flight_frequency
+    FROM claim_missing_miles
+    WHERE email_member = NEW.email
+      AND status_penerimaan = 'Disetujui';
+
+    SELECT nama
+    INTO old_tier_name
+    FROM tier
+    WHERE id_tier = OLD.id_tier;
+
+    SELECT id_tier, nama
+    INTO eligible_tier_id, eligible_tier_name
+    FROM tier
+    WHERE minimal_tier_miles <= NEW.total_miles
+      AND minimal_frekuensi_terbang <= flight_frequency
+    ORDER BY minimal_tier_miles DESC, minimal_frekuensi_terbang DESC
+    LIMIT 1;
+
+    IF eligible_tier_id IS NOT NULL AND eligible_tier_id <> NEW.id_tier THEN
+        UPDATE member
+        SET id_tier = eligible_tier_id
+        WHERE email = NEW.email;
+
+        RAISE NOTICE 'SUKSES: Tier Member "%" telah diperbarui dari "%" menjadi "%" berdasarkan total miles yang dimiliki.',
+            NEW.email,
+            old_tier_name,
+            eligible_tier_name;
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_update_member_tier_after_total_miles_change
+AFTER UPDATE OF total_miles ON member
+FOR EACH ROW
+WHEN (OLD.total_miles IS DISTINCT FROM NEW.total_miles)
+EXECUTE FUNCTION fn_update_member_tier_after_total_miles_change();
