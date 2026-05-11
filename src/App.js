@@ -23,13 +23,17 @@ import ProfileSettingsPage from './pages/member/ProfileSettingsPage';
 import RewardsPage from './pages/member/RewardsPage';
 import TransferMilesPage from './pages/member/TransferMilesPage';
 
+const routerBasename = process.env.PUBLIC_URL
+  ? new URL(process.env.PUBLIC_URL, window.location.origin).pathname.replace(/\/$/, '')
+  : undefined;
+
 function AppRoutes() {
   const { toasts, removeToast } = useAppContext();
 
   return (
     <>
       <ToastViewport toasts={toasts} removeToast={removeToast} />
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+      <BrowserRouter basename={routerBasename} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/login" element={<LoginPage />} />
