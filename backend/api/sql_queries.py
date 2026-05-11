@@ -11,6 +11,14 @@ ERROR_USER_NOT_FOUND = 'Pengguna tidak ditemukan.'
 ERROR_INVALID_USER_ROLE = 'Role pengguna tidak valid.'
 
 
+def pick(data, *keys, default=None):
+    for key in keys:
+        value = data.get(key)
+        if value not in (None, ''):
+            return value
+    return default
+
+
 def fetch_all(sql, params=None):
     with connection.cursor() as cursor:
         cursor.execute(sql, params or [])
@@ -474,6 +482,8 @@ def get_claims():
         SELECT
             c.id,
             c.email_member,
+            m.nomor_member,
+            TRIM(CONCAT_WS(' ', NULLIF(p.salutation, ''), NULLIF(p.first_mid_name, ''), NULLIF(p.last_name, ''))) AS nama_member,
             c.email_staf,
             c.maskapai,
             ma.nama_maskapai,
@@ -487,9 +497,143 @@ def get_claims():
             c.status_penerimaan,
             c.time_stamp
         FROM claim_missing_miles c
+        JOIN member m ON m.email = c.email_member
+        JOIN pengguna p ON p.email = c.email_member
         JOIN maskapai ma ON ma.kode_maskapai = c.maskapai
         ORDER BY c.time_stamp DESC, c.id
         """
+    )
+
+
+def submit_missing_miles_claim(data):
+    return fetch_one(
+        """
+        SELECT *
+        FROM process_submit_missing_miles_claim(%s, %s, %s, %s, %s::date, %s, %s, %s, %s, %s)
+        """,
+        [
+            pick(data, 'email_member', 'member_email', 'memberEmail', 'email'),
+            pick(data, 'maskapai', 'airline_code', 'airlineCode', 'airline'),
+            pick(data, 'bandara_asal', 'origin', 'originAirport'),
+            pick(data, 'bandara_tujuan', 'destination', 'destinationAirport'),
+            pick(data, 'tanggal_penerbangan', 'flight_date', 'flightDate'),
+            pick(data, 'flight_number', 'flightNumber'),
+            pick(data, 'nomor_tiket', 'ticket_number', 'ticketNumber'),
+            pick(data, 'kelas_kabin', 'cabin_class', 'cabinClass'),
+            pick(data, 'pnr'),
+            pick(data, 'id', 'claim_id', 'claimId'),
+        ],
+    )
+
+
+def review_missing_miles_claim(claim_id, data):
+    return fetch_one(
+        """
+        SELECT *
+        FROM process_review_missing_miles_claim(%s, %s, %s)
+        """,
+        [
+            claim_id,
+            pick(data, 'email_staf', 'staff_email', 'staffEmail', 'email'),
+            pick(data, 'status_penerimaan', 'status'),
+        ],
+    )
+
+
+def get_transfers():
+    return fetch_all(
+        """
+        SELECT
+            t.email_member_1 AS sender_email,
+            sender.nomor_member AS sender_nomor_member,
+            t.email_member_2 AS recipient_email,
+            recipient.nomor_member AS recipient_nomor_member,
+            t.jumlah,
+            t.catatan,
+            t.time_stamp
+        FROM transfer t
+        JOIN member sender ON sender.email = t.email_member_1
+        JOIN member recipient ON recipient.email = t.email_member_2
+        ORDER BY t.time_stamp DESC
+        """
+    )
+
+
+def transfer_miles(data):
+    return fetch_one(
+        """
+        SELECT *
+        FROM process_transfer_miles(%s, %s, %s, %s::integer, %s)
+        """,
+        [
+            pick(data, 'sender_email', 'email_member_1', 'fromEmail', 'memberEmail', 'email'),
+            pick(data, 'recipient_email', 'email_member_2', 'toEmail'),
+            pick(data, 'recipient_nomor_member', 'recipient_member_number', 'recipientMemberNumber', 'toMemberNumber'),
+            pick(data, 'jumlah', 'amount'),
+            pick(data, 'catatan', 'note', default=''),
+        ],
+    )
+
+
+def get_redemptions():
+    return fetch_all(
+        """
+        SELECT
+            r.email_member,
+            m.nomor_member,
+            r.kode_hadiah,
+            h.nama AS nama_hadiah,
+            h.miles AS jumlah_miles,
+            r.time_stamp
+        FROM redeem r
+        JOIN member m ON m.email = r.email_member
+        JOIN hadiah h ON h.kode_hadiah = r.kode_hadiah
+        ORDER BY r.time_stamp DESC
+        """
+    )
+
+
+def redeem_reward(data):
+    return fetch_one(
+        """
+        SELECT *
+        FROM process_redeem_reward(%s, %s)
+        """,
+        [
+            pick(data, 'email_member', 'member_email', 'memberEmail', 'email'),
+            pick(data, 'kode_hadiah', 'reward_id', 'rewardId', 'id'),
+        ],
+    )
+
+
+def get_package_purchases():
+    return fetch_all(
+        """
+        SELECT
+            map.email_member,
+            m.nomor_member,
+            map.id_award_miles_package,
+            amp.jumlah_award_miles,
+            amp.harga_paket,
+            map.time_stamp
+        FROM member_award_miles_package map
+        JOIN member m ON m.email = map.email_member
+        JOIN award_miles_package amp ON amp.id = map.id_award_miles_package
+        ORDER BY map.time_stamp DESC
+        """
+    )
+
+
+def purchase_miles_package(data):
+    return fetch_one(
+        """
+        SELECT *
+        FROM process_purchase_miles_package(%s, %s)
+        """,
+        [
+            pick(data, 'email_member', 'member_email', 'memberEmail', 'email'),
+            pick(data, 'id_award_miles_package', 'package_id', 'packageId', 'id'),
+        ],
     )
 
 
@@ -615,6 +759,15 @@ def get_miles_packages():
         SELECT id, harga_paket, jumlah_award_miles
         FROM award_miles_package
         ORDER BY jumlah_award_miles
+        """
+    )
+
+
+def get_top_members():
+    return fetch_all(
+        """
+        SELECT peringkat, email_member, nama_lengkap, total_miles_member
+        FROM fn_rank_top_5_members()
         """
     )
 
