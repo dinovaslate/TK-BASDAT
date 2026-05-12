@@ -11,6 +11,10 @@ urlpatterns = [
     path('members/', views.member_list, name='member-list'),
     path('staff/', views.staff_list, name='staff-list'),
     path('claims/', views.claim_list, name='claim-list'),
+    path('claims/<str:claim_id>/review/', views.claim_review, name='claim-review'),
+    path('transfers/', views.transfer_list, name='transfer-list'),
+    path('redeems/', views.redeem_list, name='redeem-list'),
+    path('miles-packages/purchases/', views.miles_package_purchase_list, name='miles-package-purchase-list'),
     path('rewards/', views.reward_list, name='reward-list'),
     path('master-data/airports/', views.airport_list, name='airport-list'),
     path('master-data/airlines/', views.airline_list, name='airline-list'),
@@ -18,4 +22,6 @@ urlpatterns = [
     path('master-data/miles-packages/', views.miles_package_list, name='miles-package-list'),
     path('rewards/redeem/', views.redeem_reward, name='redeem-reward'),
     path('miles-packages/purchase/', views.purchase_package, name='purchase-package'),
+    path('reports/top-members/', views.top_member_report, name='top-member-report'),
+
 ]

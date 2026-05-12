@@ -67,9 +67,66 @@ def staff_list(request):
     return Response(sql_queries.get_staff())
 
 
-@api_view(['GET'])
+@api_view(['GET', 'POST'])
 def claim_list(request):
+    if request.method == 'POST':
+        try:
+            claim = sql_queries.submit_missing_miles_claim(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(claim, status=201)
+
     return Response(sql_queries.get_claims())
+
+
+@api_view(['PATCH', 'POST'])
+def claim_review(request, claim_id):
+    try:
+        claim = sql_queries.review_missing_miles_claim(claim_id, request.data)
+    except DatabaseError as error:
+        return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+    return Response(claim)
+
+
+@api_view(['GET', 'POST'])
+def transfer_list(request):
+    if request.method == 'POST':
+        try:
+            transfer = sql_queries.transfer_miles(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(transfer, status=201)
+
+    return Response(sql_queries.get_transfers())
+
+
+@api_view(['GET', 'POST'])
+def redeem_list(request):
+    if request.method == 'POST':
+        try:
+            redeem = sql_queries.redeem_reward(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(redeem, status=201)
+
+    return Response(sql_queries.get_redemptions())
+
+
+@api_view(['GET', 'POST'])
+def miles_package_purchase_list(request):
+    if request.method == 'POST':
+        try:
+            purchase = sql_queries.purchase_miles_package(request.data)
+        except DatabaseError as error:
+            return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+        return Response(purchase, status=201)
+
+    return Response(sql_queries.get_package_purchases())
 
 
 @api_view(['GET'])
@@ -106,7 +163,7 @@ def redeem_reward(request):
         return Response({'error': 'Email dan kode hadiah wajib diisi.'}, status=400)
 
     try:
-        message = sql_queries.redeem_reward(email, reward_code)
+        message = sql_queries.redeem_reward_v2(email, reward_code)
         return Response({'message': message})
     except DatabaseError as error:
         return Response({'error': sql_queries.database_error_message(error)}, status=400)
@@ -121,7 +178,13 @@ def purchase_package(request):
         return Response({'error': 'Email dan ID paket wajib diisi.'}, status=400)
 
     try:
-        message = sql_queries.purchase_package(email, package_id)
+        message = sql_queries.purchase_package_v2(email, package_id)
         return Response({'message': message})
     except DatabaseError as error:
         return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+
+@api_view(['GET'])
+def top_member_report(request):
+    return Response(sql_queries.get_top_members())
+

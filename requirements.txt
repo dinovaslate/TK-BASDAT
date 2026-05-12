@@ -1,8 +1,9 @@
 pytest
 selenium
 webdriver-manager
-django
+django>=5.2,<6
 djangorestframework
 django-cors-headers
 psycopg[binary]
 python-dotenv
+gunicorn
