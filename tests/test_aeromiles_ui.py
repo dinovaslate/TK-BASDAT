@@ -8,6 +8,7 @@ from selenium import webdriver
 from selenium.common.exceptions import ElementClickInterceptedException, NoSuchElementException, TimeoutException
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import Select, WebDriverWait
 from webdriver_manager.chrome import ChromeDriverManager
@@ -88,7 +89,9 @@ def click_testid(driver, test_id):
 
 def input_testid(driver, test_id, value):
   element = wait_for_testid(driver, test_id)
-  element.clear()
+  element.click()
+  element.send_keys(Keys.CONTROL, 'a')
+  element.send_keys(Keys.DELETE)
   pause_ms(ACTION_DELAY_MS)
   element.send_keys(value)
   pause_ms(ACTION_DELAY_MS)
