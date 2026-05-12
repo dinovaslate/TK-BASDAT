@@ -151,6 +151,49 @@ def wait_until_table_not_contains(driver, test_id, text):
   WebDriverWait(driver, TIMEOUT).until(lambda browser: text not in wait_for_testid(browser, test_id).text)
 
 
+def assert_no_body_horizontal_overflow(driver):
+  result = driver.execute_script(
+    """
+    const doc = document.documentElement;
+    const body = document.body;
+    const viewport = window.innerWidth;
+    const allowedScrollContainers = '.table-shell, .sidebar-nav, .transaction-tabs';
+    const offenders = [];
+
+    function describeElement(element) {
+      const className = typeof element.className === 'string'
+        ? element.className.trim().replace(/\\s+/g, '.')
+        : '';
+      const testId = element.getAttribute && element.getAttribute('data-testid')
+        ? `[${element.getAttribute('data-testid')}]`
+        : '';
+      return `${element.tagName.toLowerCase()}${className ? `.${className}` : ''}${testId}`;
+    }
+
+    for (const element of Array.from(document.querySelectorAll('body *'))) {
+      const rect = element.getBoundingClientRect();
+      if (!rect.width || !rect.height || element.closest(allowedScrollContainers)) {
+        continue;
+      }
+      if (rect.right > viewport + 1 || element.scrollWidth > element.clientWidth + 1) {
+        offenders.push(describeElement(element));
+      }
+    }
+
+    return {
+      viewport,
+      docScrollWidth: doc.scrollWidth,
+      bodyScrollWidth: body.scrollWidth,
+      offenders: offenders.slice(0, 5),
+    };
+    """
+  )
+
+  assert result['docScrollWidth'] <= result['viewport'] + 1, result
+  assert result['bodyScrollWidth'] <= result['viewport'] + 1, result
+  assert result['offenders'] == [], result
+
+
 def login_member(driver):
   open_page(driver, '/login')
   click_testid(driver, 'login-member-tab')
@@ -996,3 +1039,46 @@ def test_delete_member_cancel(driver):
   click_testid(driver, 'delete-member-AM-100002')
   click_testid(driver, 'confirm-cancel')
   wait_for_text(driver, 'AM-100002')
+
+
+def test_public_routes_are_mobile_responsive(driver):
+  for width, height in ((390, 844), (768, 1024)):
+    driver.set_window_size(width, height)
+    for path in ('/', '/login', '/register'):
+      open_page(driver, path)
+      assert_no_body_horizontal_overflow(driver)
+
+
+def test_member_routes_are_mobile_responsive(driver):
+  for width, height in ((390, 844), (768, 1024)):
+    driver.set_window_size(width, height)
+    login_member(driver)
+    for path in (
+      '/member/dashboard',
+      '/member/claim',
+      '/member/buy-miles',
+      '/member/transfer',
+      '/member/rewards',
+      '/member/profile',
+    ):
+      visit_path(driver, path)
+      assert_no_body_horizontal_overflow(driver)
+
+
+def test_staff_routes_are_mobile_responsive(driver):
+  for width, height in ((390, 844), (768, 1024)):
+    driver.set_window_size(width, height)
+    login_staff(driver)
+    for path in (
+      '/admin/dashboard',
+      '/admin/members',
+      '/admin/staff',
+      '/admin/claims',
+      '/admin/transactions',
+      '/admin/master-data',
+      '/admin/rewards-management',
+      '/admin/reports',
+      '/admin/profile',
+    ):
+      visit_path(driver, path)
+      assert_no_body_horizontal_overflow(driver)
