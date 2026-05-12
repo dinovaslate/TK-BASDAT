@@ -1,0 +1,10 @@
+.env
+backend/.env
+db.sqlite3
+backend/db.sqlite3
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+PROJECT_SUMMARY.md

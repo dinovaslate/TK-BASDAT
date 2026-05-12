@@ -95,3 +95,33 @@ def tier_list(request):
 @api_view(['GET'])
 def miles_package_list(request):
     return Response(sql_queries.get_miles_packages())
+
+
+@api_view(['POST'])
+def redeem_reward(request):
+    email = request.data.get('email')
+    reward_code = request.data.get('kode_hadiah')
+
+    if not email or not reward_code:
+        return Response({'error': 'Email dan kode hadiah wajib diisi.'}, status=400)
+
+    try:
+        message = sql_queries.redeem_reward(email, reward_code)
+        return Response({'message': message})
+    except DatabaseError as error:
+        return Response({'error': sql_queries.database_error_message(error)}, status=400)
+
+
+@api_view(['POST'])
+def purchase_package(request):
+    email = request.data.get('email')
+    package_id = request.data.get('id_paket')
+
+    if not email or not package_id:
+        return Response({'error': 'Email dan ID paket wajib diisi.'}, status=400)
+
+    try:
+        message = sql_queries.purchase_package(email, package_id)
+        return Response({'message': message})
+    except DatabaseError as error:
+        return Response({'error': sql_queries.database_error_message(error)}, status=400)

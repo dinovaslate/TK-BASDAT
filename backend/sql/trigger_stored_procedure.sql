@@ -239,3 +239,77 @@ RETURNS TABLE (
         LIMIT 5;
     END;
 $$ LANGUAGE plpgsql;
+
+-- =========================================================
+-- REDEEM AND PURCHASE TRIGGERS
+-- =========================================================
+
+DROP TRIGGER IF EXISTS trg_validate_redeem ON redeem;
+DROP FUNCTION IF EXISTS fn_validate_redeem();
+
+CREATE OR REPLACE FUNCTION fn_validate_redeem()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_miles_hadiah INTEGER;
+    v_nama_hadiah VARCHAR;
+    v_saldo_member INTEGER;
+    v_start DATE;
+    v_end DATE;
+BEGIN
+    SELECT miles, nama, valid_start_date, program_end
+    INTO v_miles_hadiah, v_nama_hadiah, v_start, v_end
+    FROM hadiah
+    WHERE kode_hadiah = NEW.kode_hadiah;
+
+    SELECT award_miles
+    INTO v_saldo_member
+    FROM member
+    WHERE email = NEW.email_member;
+
+    IF CURRENT_DATE < v_start OR CURRENT_DATE > v_end THEN
+        RAISE EXCEPTION 'ERROR: Hadiah "%" tidak tersedia pada periode ini.', v_nama_hadiah;
+    END IF;
+
+    IF v_saldo_member < v_miles_hadiah THEN
+        RAISE EXCEPTION 'ERROR: Saldo award miles tidak mencukupi. Dibutuhkan % miles, saldo Anda: % miles.', v_miles_hadiah, v_saldo_member;
+    END IF;
+
+    UPDATE member
+    SET award_miles = award_miles - v_miles_hadiah
+    WHERE email = NEW.email_member;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_validate_redeem
+BEFORE INSERT ON redeem
+FOR EACH ROW
+EXECUTE FUNCTION fn_validate_redeem();
+
+DROP TRIGGER IF EXISTS trg_sync_miles_purchase ON member_award_miles_package;
+DROP FUNCTION IF EXISTS fn_sync_miles_purchase();
+
+CREATE OR REPLACE FUNCTION fn_sync_miles_purchase()
+RETURNS TRIGGER AS $$
+DECLARE
+    v_jumlah_miles INTEGER;
+BEGIN
+    SELECT jumlah_award_miles
+    INTO v_jumlah_miles
+    FROM award_miles_package
+    WHERE id = NEW.id_award_miles_package;
+
+    UPDATE member
+    SET award_miles = award_miles + v_jumlah_miles,
+        total_miles = total_miles + v_jumlah_miles
+    WHERE email = NEW.email_member;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_sync_miles_purchase
+AFTER INSERT ON member_award_miles_package
+FOR EACH ROW
+EXECUTE FUNCTION fn_sync_miles_purchase();

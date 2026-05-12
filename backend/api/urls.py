@@ -16,4 +16,6 @@ urlpatterns = [
     path('master-data/airlines/', views.airline_list, name='airline-list'),
     path('master-data/tiers/', views.tier_list, name='tier-list'),
     path('master-data/miles-packages/', views.miles_package_list, name='miles-package-list'),
+    path('rewards/redeem/', views.redeem_reward, name='redeem-reward'),
+    path('miles-packages/purchase/', views.purchase_package, name='purchase-package'),
 ]

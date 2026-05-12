@@ -627,6 +627,7 @@ def get_partners():
         """
     )
 
+
 def insert_partner(data):
     email = data.get('email_mitra')
     nama_mitra = data.get('nama_mitra')
@@ -650,13 +651,14 @@ def insert_partner(data):
                 tanggal_kerja_sama
                 )
                 VALUES (
-                %s
+                %s,
                 %s,
                 %s,
                 %s)
                 """,
                 [id_penyedia, email, nama_mitra, tanggal_kerja_sama]
             )
+
 
 def update_partner(email, data):
     new_nama = data.get('nama_mitra')
@@ -673,6 +675,7 @@ def update_partner(email, data):
                 [new_nama, new_tanggal, email]
             )
 
+
 def delete_partner(email):
     with transaction.atomic():
         with connection.cursor() as cursor:
@@ -683,3 +686,51 @@ def delete_partner(email):
                 """,
                 [email]
             )
+
+
+def redeem_reward(email, reward_code):
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT nama, miles FROM hadiah WHERE kode_hadiah = %s",
+                [reward_code],
+            )
+            reward = cursor.fetchone()
+            if not reward:
+                raise DatabaseError(f"Hadiah dengan kode {reward_code} tidak ditemukan.")
+
+            nama_hadiah, miles = reward
+
+            cursor.execute(
+                """
+                INSERT INTO redeem (email_member, kode_hadiah, time_stamp)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                """,
+                [email, reward_code],
+            )
+
+            return f'SUKSES: Redeem hadiah "{nama_hadiah}" berhasil. Award miles Anda berkurang {miles} miles.'
+
+
+def purchase_package(email, package_id):
+    with transaction.atomic():
+        with connection.cursor() as cursor:
+            cursor.execute(
+                "SELECT jumlah_award_miles FROM award_miles_package WHERE id = %s",
+                [package_id],
+            )
+            package = cursor.fetchone()
+            if not package:
+                raise DatabaseError(f"Package dengan id {package_id} tidak ditemukan.")
+
+            jumlah_award_miles = package[0]
+
+            cursor.execute(
+                """
+                INSERT INTO member_award_miles_package (id_award_miles_package, email_member, time_stamp)
+                VALUES (%s, %s, CURRENT_TIMESTAMP)
+                """,
+                [package_id, email],
+            )
+
+            return f'SUKSES: Pembelian package berhasil. Award miles dan total miles Anda bertambah {jumlah_award_miles} miles.'
